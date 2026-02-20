@@ -8,7 +8,7 @@ const SESSION_KEY = 'church_session_auth_v3';
 const LAST_SYNC_KEY = 'church_db_last_sync_v3';
 const DIRTY_FLAG = 'church_db_is_dirty';
 
-const API_URL = 'https://api.npoint.io/85045a2741165e6481c4'; 
+const API_URL = '/api/data'; 
 
 const DEFAULT_CONFIG: SystemConfig = {
   churchName: 'كنيسة الملاك روفائيل',
