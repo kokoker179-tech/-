@@ -79,7 +79,7 @@ export const EditYouth: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !originalYouth) return;
 
@@ -90,7 +90,7 @@ export const EditYouth: React.FC = () => {
         : y
     );
 
-    storageService.saveYouth(updatedList);
+    await storageService.saveYouth(updatedList);
 
     setSuccess(true);
     setTimeout(() => {

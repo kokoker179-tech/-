@@ -46,10 +46,14 @@ async function startServer() {
   app.post('/api/data', (req, res) => {
     try {
       const newData = req.body;
+      if (!newData || typeof newData !== 'object') {
+        return res.status(400).json({ error: 'Invalid data format' });
+      }
       newData.updatedAt = new Date().toISOString();
       fs.writeFileSync(DB_FILE, JSON.stringify(newData, null, 2));
       res.json({ success: true, updatedAt: newData.updatedAt });
     } catch (error) {
+      console.error('Database write error:', error);
       res.status(500).json({ error: 'Failed to write to database' });
     }
   });
@@ -63,10 +67,17 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Serve static files in production
-    app.use(express.static(path.join(__dirname, 'dist')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
+    const distPath = path.join(__dirname, 'dist');
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    } else {
+      app.get('*', (req, res) => {
+        res.status(404).send('Production build not found. Run npm run build first.');
+      });
+    }
   }
 
   app.listen(PORT, '0.0.0.0', () => {
