@@ -4,10 +4,57 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   Home, UserPlus, CheckSquare, Users, Menu, X, 
   ClipboardList, Settings, LogOut, Code, Monitor, 
-  Sun, Moon, Languages, Globe 
+  Sun, Moon, Languages, Globe, Database, Loader2, Wifi, Trophy, UserCheck
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { t, Lang } from '../services/i18n';
+
+const SyncStatus = ({ lang }: { lang: Lang }) => {
+  const [status, setStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
+  const [lastSync, setLastSync] = useState<string>(localStorage.getItem('church_db_last_sync_v3') || '---');
+
+  useEffect(() => {
+    const start = () => setStatus('syncing');
+    const end = () => {
+      setStatus('synced');
+      setLastSync(localStorage.getItem('church_db_last_sync_v3') || '---');
+    };
+    const err = () => setStatus('error');
+    
+    window.addEventListener('sync_started', start);
+    window.addEventListener('sync_ended', end);
+    window.addEventListener('sync_error', err);
+    
+    return () => {
+      window.removeEventListener('sync_started', start);
+      window.removeEventListener('sync_ended', end);
+      window.removeEventListener('sync_error', err);
+    };
+  }, []);
+
+  return (
+    <div className="px-4 py-3 mb-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          {lang === 'ar' ? 'حالة المزامنة' : 'Sync Status'}
+        </span>
+        {status === 'syncing' ? (
+          <Loader2 size={12} className="animate-spin text-blue-500" />
+        ) : status === 'error' ? (
+          <Wifi size={12} className="text-rose-500" />
+        ) : (
+          <Database size={12} className="text-emerald-500" />
+        )}
+      </div>
+      <p className={`text-[11px] font-bold ${status === 'error' ? 'text-rose-600' : 'text-slate-600 dark:text-slate-300'}`}>
+        {status === 'syncing' ? (lang === 'ar' ? 'جاري التحديث...' : 'Syncing...') : 
+         status === 'error' ? (lang === 'ar' ? 'خطأ في الاتصال' : 'Sync Error') : 
+         (lang === 'ar' ? 'البيانات محدثة' : 'Data Synced')}
+      </p>
+      <p className="text-[9px] text-slate-400 mt-0.5">{lang === 'ar' ? 'آخر مزامنة:' : 'Last sync:'} {lastSync}</p>
+    </div>
+  );
+};
 
 const NavItem = ({ to, icon: Icon, label, active, onClick, colorClass }: { to: string, icon: any, label: string, active: boolean, onClick?: () => void, colorClass: string }) => (
   <Link
@@ -134,8 +181,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
         </div>
 
         <nav className="flex flex-col gap-2 shrink-0">
+          <SyncStatus lang={lang} />
           <NavItem to="/" icon={Home} label={t('dashboard', lang)} active={location.pathname === '/'} colorClass="hover:text-blue-600" />
           <NavItem to="/register-attendance" icon={CheckSquare} label={t('registerAttendance', lang)} active={location.pathname === '/register-attendance'} colorClass="hover:text-emerald-600" />
+          <NavItem to="/marathon" icon={Trophy} label={t('marathon', lang)} active={location.pathname === '/marathon'} colorClass="hover:text-amber-500" />
+          <NavItem to="/servants" icon={UserCheck} label={t('servants', lang)} active={location.pathname === '/servants'} colorClass="hover:text-rose-500" />
           <NavItem to="/youth-portal" icon={Monitor} label={t('youthPortal', lang)} active={location.pathname === '/youth-portal'} colorClass="hover:text-indigo-600" />
           <NavItem to="/all-attendance" icon={ClipboardList} label={t('fullHistory', lang)} active={location.pathname === '/all-attendance'} colorClass="hover:text-amber-600" />
           <NavItem to="/add-youth" icon={UserPlus} label={t('addNewYouth', lang)} active={location.pathname === '/add-youth'} colorClass="hover:text-purple-600" />
@@ -184,8 +234,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
               <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X size={24} /></button>
             </div>
             <nav className="flex flex-col gap-2 shrink-0">
+              <SyncStatus lang={lang} />
               <NavItem to="/" icon={Home} label={t('dashboard', lang)} active={location.pathname === '/'} onClick={() => setIsOpen(false)} colorClass="hover:text-blue-600" />
               <NavItem to="/register-attendance" icon={CheckSquare} label={t('registerAttendance', lang)} active={location.pathname === '/register-attendance'} onClick={() => setIsOpen(false)} colorClass="hover:text-emerald-600" />
+              <NavItem to="/marathon" icon={Trophy} label={t('marathon', lang)} active={location.pathname === '/marathon'} onClick={() => setIsOpen(false)} colorClass="hover:text-amber-500" />
+              <NavItem to="/servants" icon={UserCheck} label={t('servants', lang)} active={location.pathname === '/servants'} onClick={() => setIsOpen(false)} colorClass="hover:text-rose-500" />
               <NavItem to="/youth-portal" icon={Monitor} label={t('youthPortal', lang)} active={location.pathname === '/youth-portal'} onClick={() => setIsOpen(false)} colorClass="hover:text-indigo-600" />
               <NavItem to="/all-attendance" icon={ClipboardList} label={t('fullHistory', lang)} active={location.pathname === '/all-attendance'} onClick={() => setIsOpen(false)} colorClass="hover:text-amber-600" />
               <NavItem to="/add-youth" icon={UserPlus} label={t('addNewYouth', lang)} active={location.pathname === '/add-youth'} onClick={() => setIsOpen(false)} colorClass="hover:text-purple-600" />

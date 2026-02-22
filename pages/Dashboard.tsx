@@ -21,6 +21,7 @@ interface ExtendedStats extends WeeklyStats {
   visitedToday: number;
   attendanceTrend: { date: string; count: number }[];
   totalYouth: number;
+  totalServants: number;
   absentToday: number;
   newYouthMonth: number;
   retentionRate: number;
@@ -39,7 +40,7 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<ExtendedStats>({ 
     totalToday: 0, totalLiturgy: 0, totalMeeting: 0, earlyBirds: 0,
     bibleReaders: 0, confessedToday: 0, visitedToday: 0,
-    attendanceTrend: [], totalYouth: 0, absentToday: 0,
+    attendanceTrend: [], totalYouth: 0, totalServants: 0, absentToday: 0,
     newYouthMonth: 0, retentionRate: 0, gradeDistribution: [],
     avgAttendance: 0, avgLiturgy: 0, avgMeeting: 0, avgBible: 0, avgConfession: 0, avgVisitation: 0
   });
@@ -52,6 +53,7 @@ export const Dashboard: React.FC = () => {
 
   const loadData = () => {
     const youthList = storageService.getYouth();
+    const servantsList = storageService.getServants();
     const allRecords = storageService.getAttendance();
     const currentFri = activeDate;
     const recentFridays = getRecentFridays(6).reverse();
@@ -109,6 +111,7 @@ export const Dashboard: React.FC = () => {
       visitedToday: todayRecords.filter(r => r.visitation).length,
       attendanceTrend: trend,
       totalYouth: youthList.length,
+      totalServants: servantsList.length,
       absentToday: Math.max(0, youthList.length - todayRecords.length),
       newYouthMonth: newYouth,
       retentionRate: youthList.length > 0 ? (regularYouth / youthList.length) * 100 : 0,
@@ -196,6 +199,9 @@ export const Dashboard: React.FC = () => {
         <div className="flex gap-3">
            <div className="px-6 py-3 bg-blue-50 text-blue-700 rounded-2xl font-black text-xs border border-blue-100">
              إجمالي الشباب: {stats.totalYouth}
+           </div>
+           <div className="px-6 py-3 bg-rose-50 text-rose-700 rounded-2xl font-black text-xs border border-rose-100">
+             إجمالي الخدام: {stats.totalServants}
            </div>
         </div>
       </div>

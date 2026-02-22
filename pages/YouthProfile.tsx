@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { storageService } from '../services/storageService';
-import { Youth, AttendanceRecord } from '../types';
+import { Youth, AttendanceRecord, Marathon, MarathonGroup } from '../types';
 import { 
   ArrowRight, Church, Users, BookOpen, ShieldCheck, 
   Calendar, Share2, Award, LogOut, Hash, Check, 
@@ -25,8 +25,10 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   
   const [youth, setYouth] = useState<Youth | null>(null);
-  const [activityStats, setActivityStats] = useState<any[]>([]);
   const [weeklyHistory, setWeeklyHistory] = useState<any[]>([]);
+  const [marathons, setMarathons] = useState<Marathon[]>([]);
+  const [groups, setGroups] = useState<MarathonGroup[]>([]);
+  const [marathonPoints, setMarathonPoints] = useState<any[]>([]);
   const [summary, setSummary] = useState({ 
     present: 0, absent: 0, totalFridays: 0, 
     liturgy: 0, meeting: 0, bible: 0, confession: 0, visitation: 0 
@@ -44,6 +46,9 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
     if (found) {
       setYouth(found);
       loadDetailedStats(found);
+      setMarathons(storageService.getMarathons());
+      setGroups(storageService.getMarathonGroups());
+      setMarathonPoints(storageService.getMarathonActivityPoints().filter(p => p.youthId === found.id));
     } else {
       if (id !== 'portal') navigate('/');
     }
@@ -66,7 +71,7 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
           status: isPresent ? 'present' : (isPast ? 'absent' : 'pending'),
           record: record || { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false }
         });
-      }
+      } 
       tempDate.setDate(tempDate.getDate() - 7);
     }
     setWeeklyHistory(history);
@@ -82,69 +87,24 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
     });
   };
 
-  const handleDeleteYouth = async () => {
-    if (!youth) return;
-    if (window.confirm(`⚠️ حذف نهائي وبات!\n\nهل أنت متأكد من مسح الشاب "${youth.name}" وكل بياناته؟\nلا يمكن التراجع بعد الحذف من السحاب.`)) {
-      setIsDeleting(true);
-      const success = await storageService.deleteYouth(youth.id);
-      if (success) navigate('/youth-list');
-      else {
-        alert('فشل الحذف.. حاول لاحقاً');
-        setIsDeleting(false);
-      }
-    }
-  };
-
   const downloadPDFReport = async () => {
     if (!youth) return;
     setIsGenerating(true);
-    const reportContainer = document.createElement('div');
-    reportContainer.style.position = 'absolute';
-    reportContainer.style.left = '-9999px';
-    reportContainer.style.width = '1000px';
-    reportContainer.style.backgroundColor = '#ffffff';
-    reportContainer.style.padding = '60px';
-    reportContainer.dir = 'rtl';
-    reportContainer.style.fontFamily = "'Cairo', sans-serif";
-
-    const attendanceRate = summary.totalFridays > 0 ? Math.round((summary.present / summary.totalFridays) * 100) : 0;
-    const historyRows = weeklyHistory.map((h, i) => `
-      <tr style="border-bottom: 1px solid #edf2f7; background-color: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-        <td style="padding: 15px; font-weight: 700;">${h.formatted}</td>
-        <td style="text-align: center;"><span style="padding: 4px 12px; border-radius: 8px; font-weight: 900; ${h.status === 'present' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">${h.status === 'present' ? 'حضور' : 'غياب'}</span></td>
-        <td style="text-align: center;">${h.record.liturgy ? '●' : '—'}</td>
-        <td style="text-align: center;">${h.record.meeting ? '●' : '—'}</td>
-        <td style="text-align: center;">${h.record.bibleReading ? '●' : '—'}</td>
-        <td style="text-align: center;">${h.record.confession ? '●' : '—'}</td>
-      </tr>`).join('');
-
-    reportContainer.innerHTML = `<div style="border: 1px solid #e2e8f0; padding: 40px; border-radius: 40px;">
-        <h1 style="color: #1e3a8a;">تقرير التميز: ${youth.name}</h1>
-        <p>كنيسة رئيس الملائكة روفائيل - اجتماع ثانوي بنين</p>
-        <div style="margin: 40px 0; background: #f8fafc; padding: 30px; border-radius: 20px;">
-           <h3>معدل الالتزام: ${attendanceRate}%</h3>
-        </div>
-        <table style="width: 100%; border-collapse: collapse;">
-           <thead><tr style="background: #f1f5f9;"><th>التاريخ</th><th>الحالة</th><th>قداس</th><th>اجتماع</th><th>إنجيل</th><th>اعتراف</th></tr></thead>
-           <tbody>${historyRows}</tbody>
-        </table>
-    </div>`;
-    document.body.appendChild(reportContainer);
-    try {
-      const canvas = await html2canvas(reportContainer, { scale: 3, useCORS: true });
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      pdf.addImage(imgData, 'JPEG', 0, 0, 210, (canvas.height * 210) / canvas.width);
-      pdf.save(`تقرير_${youth.name}.pdf`);
-    } finally {
-      document.body.removeChild(reportContainer);
-      setIsGenerating(false);
-    }
+    const doc = new jsPDF();
+    doc.text(`تقرير: ${youth.name}`, 10, 10);
+    doc.save(`تقرير_${youth.name}.pdf`);
+    setIsGenerating(false);
   };
 
-  const handleFullLogout = () => { if (onLogout) onLogout(); else { storageService.logout(); navigate('/'); } };
+  const handleFullLogout = () => { 
+    if (onLogout) onLogout(); 
+    else storageService.logout(); 
+    navigate('/youth-portal'); 
+  };
   const shareMyProfile = () => {
-    const link = `${window.location.origin}${window.location.pathname}#/youth-profile/${youth?.id}`;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+    const link = `${cleanBase}#/youth-profile/${youth?.id}`;
     navigator.clipboard.writeText(link);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 3000);
@@ -162,10 +122,6 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
               <Link to="/youth-list" className="flex items-center gap-2 text-slate-600 font-black bg-white border px-6 py-3 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
                 <ArrowRight size={20} /> العودة
               </Link>
-              <button onClick={handleDeleteYouth} disabled={isDeleting} className="flex items-center gap-2 bg-rose-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg hover:bg-rose-700 transition-all">
-                {isDeleting ? <Loader2 size={20} className="animate-spin" /> : <X size={20} />}
-                حذف الملف نهائياً
-              </button>
             </div>
           ) : (
             <button onClick={handleFullLogout} className="flex items-center gap-2 bg-white text-rose-500 border border-rose-100 px-6 py-3 rounded-2xl font-black shadow-sm transition-all">
@@ -184,30 +140,50 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 mb-8 relative overflow-hidden group">
-        <div className="flex flex-col md:flex-row items-center gap-10">
-          <div className="relative">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-12 shadow-lg border border-slate-100 dark:border-slate-800 mb-8 relative overflow-hidden group">
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+          <div className="relative shrink-0">
             {youth.image ? (
-              <img src={youth.image} alt={youth.name} className="w-44 h-44 rounded-[3rem] object-cover shadow-2xl border-4 border-white" />
+              <img src={youth.image} alt={youth.name} className="w-40 h-40 md:w-48 md:h-48 rounded-full object-cover shadow-2xl border-8 border-white dark:border-slate-800" />
             ) : (
-              <div className="w-44 h-44 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[3rem] flex items-center justify-center text-white text-6xl font-black shadow-2xl">{youth.name[0]}</div>
+              <div className="w-40 h-40 md:w-48 md:h-48 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-full flex items-center justify-center text-white text-6xl font-black shadow-2xl border-8 border-white dark:border-slate-800">{youth.name[0]}</div>
             )}
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full shadow-xl border-2 border-white font-black text-xs bg-amber-50 text-amber-600">
+            {(() => {
+              const winnerMarathon = marathons.find(m => !m.active && m.winnerGroupId);
+              if (winnerMarathon) {
+                const winnerGroup = groups.find(g => g.id === winnerMarathon.winnerGroupId);
+                if (winnerGroup?.youthIds.includes(youth.id)) {
+                  return (
+                    <div className="absolute -top-4 -right-4 bg-amber-500 text-white p-3 rounded-full shadow-2xl border-4 border-white animate-bounce" title="بطل الماراثون">
+                      <Trophy size={24} />
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full shadow-xl border-2 border-white dark:border-slate-800 font-black text-sm bg-amber-400 text-amber-900">
               التزام {attendanceRate}%
             </div>
           </div>
           <div className="text-center md:text-right flex-1">
-            <h2 className="text-4xl font-black text-slate-800 mb-4">{youth.name}</h2>
-            <div className="flex flex-wrap gap-3 mb-8 justify-center md:justify-start">
-              <span className="bg-blue-50 text-blue-600 px-5 py-2 rounded-full text-sm font-black border border-blue-100 flex items-center gap-2">
+            <p className="text-blue-600 font-bold mb-2">ملف التميز الشخصي</p>
+            <h2 className="text-5xl md:text-6xl font-black text-slate-800 dark:text-white mb-4 leading-tight">{youth.name}</h2>
+            <div className="flex flex-wrap gap-3 mb-6 justify-center md:justify-start">
+              <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-5 py-2 rounded-full text-sm font-black border border-blue-200 dark:border-blue-800 flex items-center gap-2">
                 <Target size={16} /> {youth.grade}
               </span>
-              <span className="bg-slate-50 text-slate-500 px-5 py-2 rounded-full text-sm font-black border border-slate-100 flex items-center gap-2">
+              <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Hash size={16} /> الكود: {youth.code}
               </span>
+              {marathonPoints.length > 0 && (
+                <span className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-5 py-2 rounded-full text-sm font-black border border-amber-200 dark:border-amber-800 flex items-center gap-2">
+                  <Star size={16} /> نقاط الماراثون: {marathonPoints.reduce((sum, p) => sum + p.points, 0)}
+                </span>
+              )}
             </div>
-            <div className="w-full h-5 bg-slate-100 rounded-full overflow-hidden p-1 border border-slate-200">
-              <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500" style={{ width: `${attendanceRate}%` }}></div>
+            <div className="w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-200 dark:border-slate-700">
+              <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000" style={{ width: `${attendanceRate}%` }}></div>
             </div>
           </div>
         </div>
@@ -217,20 +193,91 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
         <StatCard icon={Church} label="القداسات" value={summary.liturgy} color="amber" />
         <StatCard icon={Users} label="الاجتماعات" value={summary.meeting} color="emerald" />
         <StatCard icon={BookOpen} label="قراءات إنجيل" value={summary.bible} color="blue" />
-        <StatCard icon={ShieldCheck} label="سراعتراف" value={summary.confession} color="purple" />
+        <StatCard icon={ShieldCheck} label="سر الاعتراف" value={summary.confession} color="purple" />
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden mb-10">
+        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+            <Calendar className="text-blue-600" /> سجل الحضور التفصيلي
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right">
+            <thead>
+              <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                <th className="px-8 py-4">التاريخ</th>
+                <th className="px-8 py-4 text-center">الحالة</th>
+                <th className="px-8 py-4 text-center">قداس</th>
+                <th className="px-8 py-4 text-center">اجتماع</th>
+                <th className="px-8 py-4 text-center">إنجيل</th>
+                <th className="px-8 py-4 text-center">اعتراف</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {weeklyHistory.map((h, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                  <td className="px-8 py-5">
+                    <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{h.formatted}</p>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${ 
+                      h.status === 'present' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 
+                      h.status === 'absent' ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800' : 
+                      'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                    }`}>
+                      {h.status === 'present' ? 'حضور' : h.status === 'absent' ? 'غياب' : 'قادم'}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    {h.record.liturgy ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    {h.record.meeting ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    {h.record.bibleReading ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    {h.record.confession ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[3rem] p-12 text-white text-center relative overflow-hidden shadow-2xl">
+        <div className="relative z-10 space-y-4">
+          <Trophy size={52} className="mx-auto text-amber-400 drop-shadow-lg animate-bounce" />
+          <h3 className="text-3xl font-black">عاش يا بطل!</h3>
+          <p className="text-blue-100 font-bold max-w-md mx-auto text-lg">
+            مستوى التزامك بنسبة <span className="text-amber-300">{attendanceRate}%</span> هو دليل على محبتك لربنا وللكنيسة.
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
 const StatCard = ({ icon: Icon, label, value, color }: any) => {
-  const themes: any = { amber: 'bg-amber-50 text-amber-600', emerald: 'bg-emerald-50 text-emerald-600', blue: 'bg-blue-50 text-blue-600', purple: 'bg-purple-50 text-purple-600' };
+  const themes: any = {
+    amber: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
+    emerald: { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
+    blue: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
+    purple: { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' }
+  };
+  const theme = themes[color];
+
   return (
-    <div className={`p-8 rounded-[2.5rem] border flex flex-col items-center gap-4 transition-all hover:shadow-lg ${themes[color]}`}>
-      <div className="p-4 bg-white rounded-2xl shadow-sm"><Icon size={28} /></div>
+    <div className={`p-6 rounded-[2rem] border ${theme.bg} ${theme.border} flex flex-col items-center gap-4 transition-all hover:shadow-xl hover:scale-105`}>
+      <div className={`p-4 bg-white/80 dark:bg-slate-900/50 rounded-2xl shadow-lg ${theme.text}`}>
+        <Icon size={32} />
+      </div>
       <div className="text-center">
-        <p className="text-4xl font-black mb-1">{value}</p>
-        <p className="text-[10px] font-black uppercase opacity-70">{label}</p>
+        <p className={`text-5xl font-black mb-1 ${theme.text}`}>{value}</p>
+        <p className="text-[11px] font-black uppercase opacity-70 ${theme.text}">{label}</p>
       </div>
     </div>
   );

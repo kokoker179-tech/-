@@ -1,25 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Loader2, ChevronDown, ChevronUp, Church, Users, Heart, 
-  BookOpen, ShieldCheck, Clock, Calendar, X, RefreshCw, CheckCircle2
+  BookOpen, ShieldCheck, Clock, Calendar, X, RefreshCw, CheckCircle2, UserCheck,
+  Music, Trophy, Wine, Scroll, Brain, UtensilsCrossed, LogOut
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { Youth, AttendanceRecord } from '../types';
+import { Youth, AttendanceRecord, Servant, Marathon, MarathonGroup, MarathonPointSystem } from '../types';
 import { getActiveFriday, formatDateArabic } from '../constants';
+
+const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (val: string) => void }) => {
+  const [day, setDay] = useState('');
+  const [month, setMonth] = useState('');
+
+  useEffect(() => {
+    if (value) {
+      const parts = value.split('-');
+      if (parts.length === 3) {
+        setMonth(parts[1]);
+        setDay(parts[2]);
+      }
+    } else {
+      setDay('');
+      setMonth('');
+    }
+  }, [value]);
+
+  const handleDateChange = (d: string, m: string) => {
+    if (d && m && d.length <= 2 && m.length <= 2) {
+      const formattedDate = `2026-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      onChange(formattedDate);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-white focus-within:border-purple-400">
+      <input 
+        type="number" 
+        placeholder="يوم" 
+        value={day}
+        onChange={(e) => { setDay(e.target.value); handleDateChange(e.target.value, month); }}
+        className="w-1/3 font-bold outline-none bg-transparent text-center"
+      />
+      <span className="text-slate-300">/</span>
+      <input 
+        type="number" 
+        placeholder="شهر" 
+        value={month}
+        onChange={(e) => { setMonth(e.target.value); handleDateChange(day, e.target.value); }}
+        className="w-1/3 font-bold outline-none bg-transparent text-center"
+      />
+      <span className="font-black text-slate-400 text-sm">/ 2026</span>
+    </div>
+  );
+};
 
 export const RegisterAttendance: React.FC = () => {
   const [youth, setYouth] = useState<Youth[]>([]);
+  const [servants, setServants] = useState<Servant[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [marathons, setMarathons] = useState<Marathon[]>([]);
+  const [activeMarathon, setActiveMarathon] = useState<Marathon | null>(null);
+  const [marathonGroups, setMarathonGroups] = useState<MarathonGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(getActiveFriday());
   const [isAutoDate, setIsAutoDate] = useState(true);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'youth' | 'servants'>('youth');
   
   const loadData = () => {
     setYouth(storageService.getYouth());
+    setServants(storageService.getServants());
     const allRecords = storageService.getAttendance();
     setRecords(allRecords.filter(r => r.date === selectedDate));
+    
+    const allMarathons = storageService.getMarathons();
+    setMarathons(allMarathons);
+    const active = allMarathons.find(m => m.active);
+    setActiveMarathon(active || null);
+    setMarathonGroups(storageService.getMarathonGroups());
   };
 
   useEffect(() => {
@@ -59,12 +118,212 @@ export const RegisterAttendance: React.FC = () => {
     if (idx > -1) allRecords[idx] = newRecord;
     else allRecords.push(newRecord);
 
+    // Auto-update Marathon Points if applicable
+    if (activeMarathon && activeTab === 'youth' && activeMarathon.startDate <= selectedDate && activeMarathon.endDate >= selectedDate) {
+      const userGroups = marathonGroups.filter(g => activeMarathon.groupIds.includes(g.id));
+      const isInMarathon = userGroups.some(g => g.youthIds.includes(youthId));
+      
+      if (isInMarathon) {
+        const points = storageService.getMarathonActivityPoints();
+        const pointSystem = activeMarathon.pointSystem;
+        
+        // Helper to update point
+        const updatePoint = (activity: keyof typeof pointSystem, reason: string) => {
+          // Remove existing point for this activity/date/youth
+          const points = storageService.getMarathonActivityPoints();
+          const filteredPoints = points.filter(p => 
+            !(p.marathonId === activeMarathon.id && 
+              p.youthId === youthId && 
+              p.weekDate === selectedDate && 
+              p.activity === activity)
+          );
+          
+          // Add new point if value is true
+          if (value === true) {
+            filteredPoints.push({
+              marathonId: activeMarathon.id,
+              youthId,
+              weekDate: selectedDate,
+              activity: activity as keyof MarathonPointSystem,
+              points: pointSystem[activity],
+              reason,
+              timestamp: Date.now()
+            });
+          }
+          storageService.saveMarathonActivityPoints(filteredPoints);
+        };
+
+        if (field === 'liturgy') updatePoint('liturgy', 'حضور القداس الإلهي');
+        if (field === 'meeting') updatePoint('meeting', 'حضور الاجتماع الأسبوعي');
+        if (field === 'confession') updatePoint('confession', 'ممارسة سر الاعتراف');
+        if (field === 'tasbeha') updatePoint('tasbeha', 'حضور التسبحة');
+        if (field === 'communion') updatePoint('communion', 'التناول من الأسرار المقدسة');
+        if (field === 'fasting') updatePoint('fasting', 'الالتزام بالصوم');
+        if (field === 'memorizationPart') updatePoint('memorizationPart', 'تسميع جزء الحفظ');
+        if (field === 'exodusCompetition') updatePoint('exodusCompetition', 'مسابقة سفر الخروج');
+        if (field === 'weeklyCompetition') updatePoint('weeklyCompetition', 'الفوز في مسابقة الجمعة');
+      }
+    }
+
     setLoading(true);
     await storageService.saveAttendance(allRecords);
     setLoading(false);
   };
 
   const filteredYouth = youth.filter(y => y.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredServants = servants.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const renderPersonList = (people: (Youth | Servant)[], isServant: boolean) => {
+    return people.map(person => {
+      const record = records.find(r => r.youthId === person.id);
+      const isExpanded = expandedId === person.id;
+      const isRegistered = !!record;
+      
+      // Check if youth is in active marathon
+      let isInMarathon = false;
+      if (!isServant && activeMarathon) {
+        const userGroups = marathonGroups.filter(g => activeMarathon.groupIds.includes(g.id));
+        isInMarathon = userGroups.some(g => g.youthIds.includes(person.id));
+      }
+
+      return (
+        <div key={person.id} className={`bg-white rounded-[2.5rem] shadow-sm border-2 transition-all overflow-hidden ${isExpanded ? 'border-blue-600 ring-8 ring-blue-50' : (isRegistered ? 'border-emerald-100 shadow-emerald-50' : 'border-slate-50')}`}>
+          <div className="p-6 md:p-8 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : person.id)}>
+            <div className="flex items-center gap-6">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all ${isRegistered ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}`}>
+                {isRegistered ? <CheckCircle2 size={24} /> : person.name[0]}
+              </div>
+              <div>
+                <h4 className="font-black text-xl text-slate-800 flex items-center gap-2">
+                  {person.name}
+                  {isInMarathon && <Trophy size={16} className="text-amber-500" />}
+                </h4>
+                <div className="flex gap-2">
+                   <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
+                     {isServant ? (person as Servant).role : (person as Youth).grade}
+                   </span>
+                   {record?.liturgyTime && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">حضر: {record.liturgyTime}</span>}
+                </div>
+              </div>
+            </div>
+            {isExpanded ? <ChevronUp className="text-slate-300" /> : <ChevronDown className="text-slate-300" />}
+          </div>
+          
+          {isExpanded && (
+            <div className="p-8 bg-slate-50/50 border-t-2 border-slate-50 space-y-8 animate-in slide-in-from-top-4">
+              {/* Status Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy)} />
+                <StatusToggle active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(person.id, 'meeting', !record?.meeting)} />
+                <StatusToggle active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(person.id, 'bibleReading', !record?.bibleReading)} />
+                <StatusToggle active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(person.id, 'confession', !record?.confession)} />
+                <StatusToggle active={record?.visitation} icon={Heart} label="افتقاد" color="rose" onClick={() => updateRecordField(person.id, 'visitation', !record?.visitation)} />
+              </div>
+
+              {isInMarathon && (
+                <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
+                  <h5 className="font-black text-amber-800 mb-4 flex items-center gap-2"><Trophy size={18}/> نقاط الماراثون الإضافية</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <StatusToggle active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha)} />
+                    <StatusToggle active={record?.communion} icon={Wine} label="تناول" color="rose" onClick={() => updateRecordField(person.id, 'communion', !record?.communion)} />
+                    <StatusToggle active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting)} />
+                    <StatusToggle active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart)} />
+                    <StatusToggle active={record?.exodusCompetition} icon={Scroll} label="مسابقة سفر الخروج" color="amber" onClick={() => updateRecordField(person.id, 'exodusCompetition', !record?.exodusCompetition)} />
+                    <StatusToggle active={record?.weeklyCompetition} icon={Trophy} label="مسابقة الجمعة" color="purple" onClick={() => updateRecordField(person.id, 'weeklyCompetition', !record?.weeklyCompetition)} />
+                  </div>
+                </div>
+              )}
+
+              {/* Time & Date Details */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={14} className="text-amber-500" /> وقت القداس (ساعة : دقيقة)
+                  </label>
+                  <input 
+                    type="time" value={record?.liturgyTime || ''} 
+                    onChange={(e) => updateRecordField(person.id, 'liturgyTime', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={14} className="text-emerald-500" /> وقت الاجتماع (ساعة : دقيقة)
+                  </label>
+                  <input 
+                    type="time" value={record?.meetingTime || ''} 
+                    onChange={(e) => updateRecordField(person.id, 'meetingTime', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-emerald-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-purple-500" /> اعترف مع مين؟
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder="اسم أبونا..."
+                    value={record?.confessorName || ''} 
+                    onChange={(e) => updateRecordField(person.id, 'confessorName', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-purple-400"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Calendar size={14} className="text-purple-500" /> تاريخ الاعتراف الفعلي
+                  </label>
+                  <DateInput 
+                    value={record?.confessionDate}
+                    onChange={(val) => updateRecordField(person.id, 'confessionDate', val)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <UserCheck size={14} className="text-rose-500" /> مين افتقده؟
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder="اسم الخادم..."
+                    value={record?.visitationDetails?.visitorName || ''} 
+                    onChange={(e) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitorName: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-rose-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Calendar size={14} className="text-rose-500" /> تاريخ الافتقاد
+                  </label>
+                  <DateInput 
+                    value={record?.visitationDetails?.visitDate}
+                    onChange={(val) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitDate: val })}
+                  />
+                </div>
+              </div>
+
+              {isRegistered && (
+                <div className="pt-6 border-t border-slate-200 flex justify-end">
+                  <button 
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`هل أنت متأكد من حذف تسجيل حضور ${person.name} لهذا اليوم؟`)) {
+                        setLoading(true);
+                        await storageService.deleteAttendanceRecord(record.id);
+                        setLoading(false);
+                        setExpandedId(null);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black hover:bg-rose-600 hover:text-white transition-all"
+                  >
+                    <LogOut size={18} /> تسجيل خروج (حذف الحضور)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto pb-24 font-['Cairo']">
@@ -110,84 +369,28 @@ export const RegisterAttendance: React.FC = () => {
         </div>
       </div>
 
+      <div className="flex gap-4 mb-6">
+        <button 
+          onClick={() => setActiveTab('youth')}
+          className={`flex-1 py-4 rounded-2xl font-black text-lg transition-all ${activeTab === 'youth' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-500 border-2 border-slate-100 hover:bg-slate-50'}`}
+        >
+          الشباب
+        </button>
+        <button 
+          onClick={() => setActiveTab('servants')}
+          className={`flex-1 py-4 rounded-2xl font-black text-lg transition-all ${activeTab === 'servants' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : 'bg-white text-slate-500 border-2 border-slate-100 hover:bg-slate-50'}`}
+        >
+          الخدام
+        </button>
+      </div>
+
       <div className="relative mb-8">
         <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
-        <input type="text" placeholder="ابحث باسم الشاب هنا..." className="w-full pl-6 pr-16 py-6 rounded-[2.5rem] border-2 border-slate-100 bg-white outline-none text-xl font-black focus:border-blue-500 transition-all shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <input type="text" placeholder="ابحث بالاسم هنا..." className="w-full pl-6 pr-16 py-6 rounded-[2.5rem] border-2 border-slate-100 bg-white outline-none text-xl font-black focus:border-blue-500 transition-all shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
 
       <div className="space-y-4">
-        {filteredYouth.map(y => {
-          const record = records.find(r => r.youthId === y.id);
-          const isExpanded = expandedId === y.id;
-          const isRegistered = !!record;
-
-          return (
-            <div key={y.id} className={`bg-white rounded-[2.5rem] shadow-sm border-2 transition-all overflow-hidden ${isExpanded ? 'border-blue-600 ring-8 ring-blue-50' : (isRegistered ? 'border-emerald-100 shadow-emerald-50' : 'border-slate-50')}`}>
-              <div className="p-6 md:p-8 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : y.id)}>
-                <div className="flex items-center gap-6">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all ${isRegistered ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}`}>
-                    {isRegistered ? <CheckCircle2 size={24} /> : y.name[0]}
-                  </div>
-                  <div>
-                    <h4 className="font-black text-xl text-slate-800">{y.name}</h4>
-                    <div className="flex gap-2">
-                       <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">{y.grade}</span>
-                       {record?.liturgyTime && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">حضر: {record.liturgyTime}</span>}
-                    </div>
-                  </div>
-                </div>
-                {isExpanded ? <ChevronUp className="text-slate-300" /> : <ChevronDown className="text-slate-300" />}
-              </div>
-              
-              {isExpanded && (
-                <div className="p-8 bg-slate-50/50 border-t-2 border-slate-50 space-y-8 animate-in slide-in-from-top-4">
-                  {/* Status Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(y.id, 'liturgy', !record?.liturgy)} />
-                    <StatusToggle active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(y.id, 'meeting', !record?.meeting)} />
-                    <StatusToggle active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(y.id, 'bibleReading', !record?.bibleReading)} />
-                    <StatusToggle active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(y.id, 'confession', !record?.confession)} />
-                    <StatusToggle active={record?.visitation} icon={Heart} label="افتقاد" color="rose" onClick={() => updateRecordField(y.id, 'visitation', !record?.visitation)} />
-                  </div>
-
-                  {/* Time & Date Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Clock size={14} className="text-amber-500" /> وقت القداس
-                      </label>
-                      <input 
-                        type="time" value={record?.liturgyTime || ''} 
-                        onChange={(e) => updateRecordField(y.id, 'liturgyTime', e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-amber-400"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Clock size={14} className="text-emerald-500" /> وقت الاجتماع
-                      </label>
-                      <input 
-                        type="time" value={record?.meetingTime || ''} 
-                        onChange={(e) => updateRecordField(y.id, 'meetingTime', e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-emerald-400"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Calendar size={14} className="text-purple-500" /> ميعاد الاعتراف
-                      </label>
-                      <input 
-                        type="date" value={record?.confessionDate || ''} 
-                        onChange={(e) => updateRecordField(y.id, 'confessionDate', e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-purple-400"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {activeTab === 'youth' ? renderPersonList(filteredYouth, false) : renderPersonList(filteredServants, true)}
       </div>
 
       {loading && (
@@ -205,6 +408,7 @@ const StatusToggle = ({ active, icon: Icon, label, color, onClick }: any) => {
     amber: active ? 'bg-amber-600 border-amber-500 text-white shadow-amber-100' : 'bg-white border-slate-100 text-slate-300',
     emerald: active ? 'bg-emerald-600 border-emerald-500 text-white shadow-emerald-100' : 'bg-white border-slate-100 text-slate-300',
     blue: active ? 'bg-blue-600 border-blue-500 text-white shadow-blue-100' : 'bg-white border-slate-100 text-slate-300',
+    indigo: active ? 'bg-indigo-600 border-indigo-500 text-white shadow-indigo-100' : 'bg-white border-slate-100 text-slate-300',
     purple: active ? 'bg-purple-600 border-purple-500 text-white shadow-purple-100' : 'bg-white border-slate-100 text-slate-300',
     rose: active ? 'bg-rose-600 border-rose-500 text-white shadow-rose-100' : 'bg-white border-slate-100 text-slate-300',
   };

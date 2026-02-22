@@ -11,6 +11,8 @@ import { AllAttendance } from './components/AllAttendance';
 import { Settings } from './pages/Settings';
 import { YouthProfile } from './pages/YouthProfile';
 import { YouthPortal } from './pages/YouthPortal';
+import { MarathonPage } from './pages/MarathonPage';
+import { ServantsPage } from './pages/ServantsPage';
 import { Login } from './pages/Login';
 import { storageService } from './services/storageService';
 import { Loader2, Cpu, Database, ShieldCheck, Wifi } from 'lucide-react';
@@ -53,6 +55,8 @@ const RouteManager = ({
         <Route path="/youth-portal" element={<YouthPortal />} />
         <Route path="/all-attendance" element={<AllAttendance />} />
         <Route path="/youth-list" element={<YouthList />} />
+        <Route path="/marathon" element={<MarathonPage />} />
+        <Route path="/servants" element={<ServantsPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/youth-profile/:id" element={<YouthProfile onLogout={handleLogout} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -63,36 +67,66 @@ const RouteManager = ({
 
 const SyncIndicator = () => {
   const [status, setStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
+  const [lastSync, setLastSync] = useState<string>(localStorage.getItem('church_db_last_sync_v3') || '---');
   
+  const handleManualSync = async () => {
+    if (status === 'syncing') return;
+    await storageService.syncFromCloud(true);
+  };
+
   useEffect(() => {
     const start = () => setStatus('syncing');
-    const end = () => setStatus('synced');
+    const end = () => {
+      setStatus('synced');
+      setLastSync(localStorage.getItem('church_db_last_sync_v3') || '---');
+    };
     const err = () => setStatus('error');
     
     window.addEventListener('sync_started', start);
     window.addEventListener('sync_ended', end);
     window.addEventListener('sync_error', err);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        storageService.syncFromCloud(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    const syncInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        storageService.syncFromCloud(true);
+      }
+    }, 5 * 60 * 1000);
     
     return () => {
       window.removeEventListener('sync_started', start);
       window.removeEventListener('sync_ended', end);
       window.removeEventListener('sync_error', err);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(syncInterval);
     };
   }, []);
 
   return (
-    <div className="fixed bottom-6 left-6 z-50">
-      <div className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md shadow-2xl transition-all duration-500 ${
+    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2">
+      <button 
+        onClick={handleManualSync}
+        disabled={status === 'syncing'}
+        className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md shadow-2xl transition-all duration-500 group ${
         status === 'syncing' ? 'bg-blue-600/90 border-blue-400 text-white animate-pulse' :
         status === 'error' ? 'bg-rose-600/90 border-rose-400 text-white' :
-        'bg-slate-900/80 border-white/10 text-slate-300'
+        'bg-slate-900/80 border-white/10 text-slate-300 hover:bg-slate-800'
       }`}>
         {status === 'syncing' ? <Loader2 size={14} className="animate-spin" /> : 
-         status === 'error' ? <Wifi size={14} /> : <Database size={14} />}
-        <span className="text-[10px] font-black uppercase tracking-widest">
-          {status === 'syncing' ? 'مزامنة سحابية...' : status === 'error' ? 'خطأ في الاتصال' : 'النظام متصل وآمن'}
-        </span>
-      </div>
+         status === 'error' ? <Wifi size={14} /> : <Database size={14} className="group-hover:scale-110 transition-transform" />}
+        <div className="flex flex-col items-start">
+          <span className="text-[10px] font-black uppercase tracking-widest text-right">
+            {status === 'syncing' ? 'جاري المزامنة...' : status === 'error' ? 'خطأ في الاتصال' : 'تحديث البيانات الآن'}
+          </span>
+          <span className="text-[8px] opacity-50 font-bold">آخر تحديث: {lastSync}</span>
+        </div>
+      </button>
     </div>
   );
 };
@@ -150,27 +184,21 @@ const App: React.FC = () => {
   if (isChecking) {
     return (
       <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-between font-['Cairo'] text-white p-10 relative overflow-hidden">
-        {/* Deep Background Glows */}
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none"></div>
         
-        {/* Header - Balanced Medium Fonts */}
         <div className="relative z-10 text-center space-y-1">
            <h2 className="text-xl md:text-2xl font-black text-slate-300 tracking-wide">كنيسة الملاك روفائيل</h2>
            <h1 className="text-lg md:text-xl font-bold text-blue-500 uppercase tracking-widest">اجتماع ثانوي بنين</h1>
         </div>
 
-        {/* Main Transparent Square (Glassmorphism) */}
         <div className="relative z-10 w-full max-w-sm p-10 rounded-[3rem] bg-white/[0.02] backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-15px_rgba(0,0,0,0.6)] flex flex-col items-center gap-10">
-          
-          {/* 1. Large Loader (Top of Square) */}
           <div className="relative flex items-center justify-center">
              <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full animate-pulse"></div>
              <div className="w-24 h-24 border-4 border-white/5 border-t-blue-500 rounded-full animate-spin"></div>
              <Loader2 size={36} className="absolute text-blue-400 animate-spin-slow" />
           </div>
 
-          {/* 2. Progress Section (Middle of Square) */}
           <div className="w-full space-y-4">
              <div className="flex justify-between items-end mb-1">
                 <div className="flex items-center gap-2 text-blue-400 font-black text-[10px] uppercase tracking-wider">
@@ -188,9 +216,7 @@ const App: React.FC = () => {
              </div>
           </div>
 
-          {/* 3. Icons with Light Cycle (Bottom of Square) */}
           <div className="flex items-center justify-center gap-8 w-full">
-             {/* Security - Active 0-5s */}
              <div className="flex flex-col items-center gap-1.5 transition-all duration-700">
                 <div className={`p-3 rounded-2xl border ${activeStep === 0 ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110' : 'bg-white/5 border-white/5 text-slate-700 opacity-30 scale-95'}`}>
                   <ShieldCheck size={22} />
@@ -198,7 +224,6 @@ const App: React.FC = () => {
                 <span className={`text-[8px] font-black uppercase tracking-widest ${activeStep === 0 ? 'text-blue-400' : 'text-slate-700'}`}>أمان</span>
              </div>
              
-             {/* CPU - Active 5-10s */}
              <div className="flex flex-col items-center gap-1.5 transition-all duration-700">
                 <div className={`p-3 rounded-2xl border ${activeStep === 1 ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.4)] scale-110' : 'bg-white/5 border-white/5 text-slate-700 opacity-30 scale-95'}`}>
                   <Cpu size={22} className={activeStep === 1 ? 'animate-pulse' : ''} />
@@ -206,7 +231,6 @@ const App: React.FC = () => {
                 <span className={`text-[8px] font-black uppercase tracking-widest ${activeStep === 1 ? 'text-indigo-400' : 'text-slate-700'}`}>معالجة</span>
              </div>
 
-             {/* Database - Active 10-15s */}
              <div className="flex flex-col items-center gap-1.5 transition-all duration-700">
                 <div className={`p-3 rounded-2xl border ${activeStep === 2 ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110' : 'bg-white/5 border-white/5 text-slate-700 opacity-30 scale-95'}`}>
                   <Database size={22} />
@@ -216,7 +240,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Footer Signature */}
         <div className="relative z-10 text-center">
            <p className="text-md font-black text-slate-400">
              مطور بواسطة: <span className="text-blue-500">كيرلس صفوت</span>

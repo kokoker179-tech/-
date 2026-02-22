@@ -5,6 +5,8 @@ const translations = {
   ar: {
     dashboard: "لوحة التحكم",
     registerAttendance: "تسجيل الحضور",
+    marathon: "الماراثون",
+    servants: "الخدام",
     youthPortal: "بوابة الشباب",
     fullHistory: "سجل الحضور الكامل",
     addNewYouth: "تسجيل شاب جديد",
@@ -28,6 +30,8 @@ const translations = {
   en: {
     dashboard: "Dashboard",
     registerAttendance: "Attendance Entry",
+    marathon: "Marathon",
+    servants: "Servants",
     youthPortal: "Youth Portal",
     fullHistory: "Attendance History",
     addNewYouth: "Add New Youth",

@@ -1,15 +1,17 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storageService';
-import { Youth, AttendanceRecord } from '../types';
+import { Youth, AttendanceRecord, Marathon, MarathonGroup } from '../types';
 import { 
   X, Search, UserCircle, Edit3, MessageCircle, Check, Copy, Hash, 
   Share2, FileText, Download, Loader2, Trash2, Church, Users, 
-  BookOpen, ShieldCheck, Heart, TrendingUp, Filter, SortAsc
+  BookOpen, ShieldCheck, Heart, TrendingUp, Filter, SortAsc,
+  Award, Trophy
 } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { generateFullReportPDF } from '../constants';
 
 interface YouthWithStats extends Youth {
   stats: {
@@ -27,6 +29,8 @@ interface YouthWithStats extends Youth {
 export const YouthList: React.FC = () => {
   const [youth, setYouth] = useState<Youth[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [marathons, setMarathons] = useState<Marathon[]>([]);
+  const [groups, setGroups] = useState<MarathonGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,6 +40,8 @@ export const YouthList: React.FC = () => {
   const loadData = () => {
     setYouth(storageService.getYouth());
     setRecords(storageService.getAttendance());
+    setMarathons(storageService.getMarathons());
+    setGroups(storageService.getMarathonGroups());
   };
 
   useEffect(() => {
@@ -53,7 +59,6 @@ export const YouthList: React.FC = () => {
       const confession = yRecords.filter(r => r.confession).length;
       const visitation = yRecords.filter(r => r.visitation).length;
       
-      // حساب عدد الجمعات منذ انضمامه (تقريبياً)
       const weeksSinceAdded = Math.max(1, Math.ceil((Date.now() - y.addedAt) / (1000 * 60 * 60 * 24 * 7)));
       const totalPresent = yRecords.filter(r => r.liturgy || r.meeting).length;
       
@@ -98,6 +103,15 @@ export const YouthList: React.FC = () => {
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  const generateSinglePDF = async (youth: YouthWithStats) => {
+    setIsGenerating(true);
+    const doc = new jsPDF();
+    doc.text(`تقرير: ${youth.name}`, 10, 10);
+    doc.text(`نسبة الالتزام: ${youth.stats.percentage}%`, 10, 20);
+    doc.save(`تقرير_${youth.name}.pdf`);
+    setIsGenerating(false);
+  };
+
   const filteredAndSorted = youthWithStats
     .filter(y => y.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
@@ -110,11 +124,10 @@ export const YouthList: React.FC = () => {
       {isGenerating && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[999] flex flex-col items-center justify-center text-white">
           <Loader2 className="animate-spin mb-4 text-blue-500" size={60} />
-          <h3 className="text-2xl font-black">جاري إنشاء التقرير الشامل...</h3>
+          <h3 className="text-2xl font-black">جاري إنشاء التقرير...</h3>
         </div>
       )}
 
-      {/* Header & Controls */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
         <div>
             <h2 className="text-4xl font-black text-slate-800 dark:text-white">دليل الشباب الذكي</h2>
@@ -138,10 +151,15 @@ export const YouthList: React.FC = () => {
               <option value="name">ترتيب بالاسم</option>
               <option value="percentage">ترتيب بالالتزام</option>
             </select>
+            <button 
+              onClick={() => generateFullReportPDF(filteredAndSorted, records)}
+              className="px-6 py-4 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2"
+            >
+              <Download size={16} /> تحميل تقرير الكل
+            </button>
         </div>
       </div>
 
-      {/* Youth Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {filteredAndSorted.map(y => {
           const isCopied = copiedId === y.id;
@@ -149,12 +167,27 @@ export const YouthList: React.FC = () => {
           
           return (
             <div key={y.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border-2 border-slate-50 dark:border-slate-800 hover:shadow-xl hover:border-blue-100 transition-all group flex flex-col h-full overflow-hidden">
-              {/* Card Header */}
               <div className="p-8 pb-4">
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
-                      {y.name[0]}
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
+                        {y.name[0]}
+                      </div>
+                      {(() => {
+                        const winnerMarathon = marathons.find(m => !m.active && m.winnerGroupId);
+                        if (winnerMarathon) {
+                          const winnerGroup = groups.find(g => g.id === winnerMarathon.winnerGroupId);
+                          if (winnerGroup?.youthIds.includes(y.id)) {
+                            return (
+                              <div className="absolute -top-2 -right-2 bg-amber-500 text-white p-1.5 rounded-full shadow-lg border-2 border-white animate-bounce" title="بطل الماراثون">
+                                <Trophy size={12} />
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
                     </div>
                     <div>
                       <h4 className="font-black text-xl text-slate-800 dark:text-slate-100 leading-tight mb-1">{y.name}</h4>
@@ -176,7 +209,6 @@ export const YouthList: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Performance Progress */}
                 <div className="mb-6 space-y-2">
                   <div className="flex justify-between items-end">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
@@ -193,7 +225,6 @@ export const YouthList: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Stats Grid */}
               <div className="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/50 grid grid-cols-5 gap-2 border-y border-slate-50 dark:border-slate-800">
                 <MiniStat icon={Church} value={y.stats.liturgy} label="قداس" color="amber" />
                 <MiniStat icon={Users} value={y.stats.meeting} label="اجتماع" color="emerald" />
@@ -202,7 +233,6 @@ export const YouthList: React.FC = () => {
                 <MiniStat icon={Heart} value={y.stats.visitation} label="افتقاد" color="rose" />
               </div>
 
-              {/* Actions Footer */}
               <div className="p-6 mt-auto grid grid-cols-2 gap-3">
                 <button onClick={() => shareToWhatsApp(y.name, y.id)} className="flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs transition-all shadow-md active:scale-95">
                   <MessageCircle size={16} /> واتساب
@@ -215,6 +245,9 @@ export const YouthList: React.FC = () => {
                   <UserCircle size={20} className="group-hover/btn:scale-110 transition-transform" />
                   عرض السجل الإحصائي الكامل
                 </Link>
+                <button onClick={() => generateSinglePDF(y)} className="col-span-2 flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-xs transition-all hover:bg-rose-600 hover:text-white active:scale-95">
+                  <Download size={16} /> تحميل تقرير PDF
+                </button>
               </div>
             </div>
           );

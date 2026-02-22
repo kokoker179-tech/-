@@ -16,6 +16,10 @@ if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(DB_FILE, JSON.stringify({
     youth: [],
     attendance: [],
+    marathons: [],
+    marathonGroups: [],
+    marathonPoints: [],
+    servants: [],
     config: {
       churchName: 'كنيسة الملاك روفائيل',
       meetingName: 'اجتماع ثانوي بنين',

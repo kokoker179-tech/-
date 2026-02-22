@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Trash2, Database, ShieldCheck, Settings as SettingsIcon, 
   Layout, Users, Lock, Save, Plus, X, Cloud, RefreshCw, 
-  AlertTriangle, Eraser, Download, CheckCircle2, Loader2, Info, Skull
+  AlertTriangle, Eraser, Download, CheckCircle2, Loader2, Info, Skull, UserCheck
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { SystemConfig } from '../types';
@@ -56,6 +56,16 @@ export const Settings: React.FC = () => {
       const success = await storageService.wipeAllYouth();
       setIsSaving(false);
       if (success) showStatus('تم حذف جميع الشباب بنجاح');
+      else showStatus('حدث خطأ في المزامنة', 'error');
+    }
+  };
+
+  const handleWipeServants = async () => {
+    if (window.confirm('⚠️ حذف كافة الخدام؟\n\nسيتم مسح سجل الخدام بالكامل نهائياً.')) {
+      setIsSaving(true);
+      const success = await storageService.saveServants([]);
+      setIsSaving(false);
+      if (success) showStatus('تم حذف جميع الخدام بنجاح');
       else showStatus('حدث خطأ في المزامنة', 'error');
     }
   };
@@ -195,6 +205,66 @@ export const Settings: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 p-8 rounded-[2rem] border border-blue-100">
+                  <h4 className="font-black text-xl text-blue-900 mb-2 flex items-center gap-2"><Download size={20}/> نسخة احتياطية</h4>
+                  <p className="text-sm text-blue-700 font-bold mb-6">قم بتحميل نسخة من كافة البيانات للذكرى أو للانتقال لجهاز آخر.</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <button 
+                      onClick={() => {
+                        const data = {
+                          youth: storageService.getYouth(),
+                          attendance: storageService.getAttendance(),
+                          config: storageService.getConfig()
+                        };
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                      }}
+                      className="w-full py-4 bg-white border-2 border-blue-300 text-blue-600 rounded-2xl font-black hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                    >
+                      <Download size={18} /> تحميل نسخة احتياطية (JSON)
+                    </button>
+                    <label className="w-full py-4 bg-white border-2 border-indigo-300 text-indigo-600 rounded-2xl font-black hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+                      <RefreshCw size={18} /> استعادة من نسخة احتياطية
+                      <input 
+                        type="file" 
+                        accept=".json" 
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            try {
+                              const data = JSON.parse(event.target?.result as string);
+                              if (window.confirm('⚠️ استعادة البيانات؟\nسيتم مسح البيانات الحالية واستبدالها بالملف المختار.')) {
+                                setIsSaving(true);
+                                const res = await fetch('/api/data', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ ...data, updatedAt: new Date().toISOString() })
+                                });
+                                if (res.ok) {
+                                  window.location.reload();
+                                } else {
+                                  showStatus('فشل الرفع للسيرفر', 'error');
+                                }
+                                setIsSaving(false);
+                              }
+                            } catch (err) {
+                              alert('الملف غير صالح');
+                            }
+                          };
+                          reader.readAsText(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <div className="bg-rose-50 p-8 rounded-[2rem] border border-rose-100">
                   <h4 className="font-black text-xl text-rose-900 mb-2 flex items-center gap-2"><RefreshCw size={20}/> بدء موسم جديد</h4>
                   <p className="text-sm text-rose-700 font-bold mb-6">سيتم تصفير كافة السجلات والبدء من تاريخ اليوم الفعلي.</p>
@@ -216,6 +286,14 @@ export const Settings: React.FC = () => {
                   <p className="text-sm text-rose-700 font-bold mb-6">يمسح كل الشباب وسجلاتهم تماماً من النظام.</p>
                   <button onClick={handleWipeYouth} className="w-full py-4 bg-white border-2 border-rose-300 text-rose-600 rounded-2xl font-black hover:bg-rose-600 hover:text-white transition-all">
                     حذف جميع الشباب
+                  </button>
+                </div>
+
+                <div className="bg-rose-50 p-8 rounded-[2rem] border border-rose-100">
+                  <h4 className="font-black text-xl text-rose-900 mb-2 flex items-center gap-2"><UserCheck size={20}/> مسح سجل الخدام</h4>
+                  <p className="text-sm text-rose-700 font-bold mb-6">يمسح كل بيانات الخدام المسجلة في النظام.</p>
+                  <button onClick={handleWipeServants} className="w-full py-4 bg-white border-2 border-rose-300 text-rose-600 rounded-2xl font-black hover:bg-rose-600 hover:text-white transition-all">
+                    حذف جميع الخدام
                   </button>
                 </div>
               </div>
