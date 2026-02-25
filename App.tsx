@@ -13,6 +13,7 @@ import { YouthProfile } from './pages/YouthProfile';
 import { YouthPortal } from './pages/YouthPortal';
 import { MarathonPage } from './pages/MarathonPage';
 import { ServantsPage } from './pages/ServantsPage';
+import { ServantProfile } from './pages/ServantProfile';
 import { Login } from './pages/Login';
 import { storageService } from './services/storageService';
 import { Loader2, Cpu, Database, ShieldCheck, Wifi } from 'lucide-react';
@@ -57,6 +58,7 @@ const RouteManager = ({
         <Route path="/youth-list" element={<YouthList />} />
         <Route path="/marathon" element={<MarathonPage />} />
         <Route path="/servants" element={<ServantsPage />} />
+        <Route path="/servant-profile/:id" element={<ServantProfile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/youth-profile/:id" element={<YouthProfile onLogout={handleLogout} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -139,8 +141,8 @@ const App: React.FC = () => {
   const [statusMsg, setStatusMsg] = useState('بدء تهيئة النظام...');
 
   useEffect(() => {
-    const duration = 3000; 
-    const interval = 50;
+    const duration = 30000; 
+    const interval = 100;
     const steps = duration / interval;
     let currentStepCount = 0;
 

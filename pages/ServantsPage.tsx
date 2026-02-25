@@ -5,10 +5,11 @@ import { Servant } from '../types';
 import { 
   UserCheck, UserPlus, Search, Phone, Shield, 
   Trash2, Edit3, Save, X, CheckCircle2, 
-  MoreVertical, Filter, User
+  MoreVertical, Filter, User, UserCircle
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 export const ServantsPage: React.FC = () => {
   const [servants, setServants] = useState<Servant[]>([]);
@@ -201,19 +202,20 @@ export const ServantsPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex justify-between items-start">
-                    <div className="flex gap-4">
+                    <Link to={`/servant-profile/${servant.id}`} className="flex gap-4 flex-1">
                       <div className="w-14 h-14 bg-rose-50 dark:bg-rose-900/30 rounded-2xl flex items-center justify-center text-rose-600">
                         <User size={28} />
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-800 dark:text-white text-lg">{servant.name}</h4>
+                        <h4 className="font-black text-slate-800 dark:text-white text-lg hover:text-rose-600 transition-colors">{servant.name}</h4>
                         <div className="flex items-center gap-2 text-rose-600 mt-1">
                           <Shield size={14} />
                           <span className="text-xs font-black uppercase tracking-wider">{servant.role}</span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link to={`/servant-profile/${servant.id}`} className="p-2 text-slate-400 hover:text-emerald-600"><UserCircle size={18}/></Link>
                       <button onClick={() => {
                         setEditingId(servant.id);
                         setFormData(servant);

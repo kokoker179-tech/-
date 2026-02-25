@@ -19,7 +19,11 @@ export const EditYouth: React.FC = () => {
     phone: '',
     image: '',
     pdfDoc: '',
-    address: ''
+    address: '',
+    region: 'منطقة الكنيسة',
+    fatherPhone: '',
+    motherPhone: '',
+    siblingsCount: 0
   });
   const [success, setSuccess] = useState(false);
   const [originalYouth, setOriginalYouth] = useState<Youth | null>(null);
@@ -35,7 +39,11 @@ export const EditYouth: React.FC = () => {
         phone: found.phone,
         image: found.image || '',
         pdfDoc: found.pdfDoc || '',
-        address: found.address || ''
+        address: found.address || '',
+        region: found.region || 'منطقة الكنيسة',
+        fatherPhone: found.fatherPhone || '',
+        motherPhone: found.motherPhone || '',
+        siblingsCount: found.siblingsCount || 0
       });
     } else {
       navigate('/youth-list');
@@ -86,7 +94,19 @@ export const EditYouth: React.FC = () => {
     const youthList = storageService.getYouth();
     const updatedList = youthList.map(y => 
       y.id === id 
-        ? { ...y, name: formData.name, grade: formData.grade, phone: formData.phone, image: formData.image, pdfDoc: formData.pdfDoc, address: formData.address }
+        ? { 
+            ...y, 
+            name: formData.name, 
+            grade: formData.grade, 
+            phone: formData.phone, 
+            image: formData.image, 
+            pdfDoc: formData.pdfDoc, 
+            address: formData.address,
+            region: formData.region,
+            fatherPhone: formData.fatherPhone,
+            motherPhone: formData.motherPhone,
+            siblingsCount: formData.siblingsCount
+          }
         : y
     );
 
@@ -163,23 +183,63 @@ export const EditYouth: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="block text-sm font-black text-slate-700">السنة الدراسية</label>
-              <select
-                className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white font-bold"
-                value={formData.grade}
-                onChange={e => setFormData({ ...formData, grade: e.target.value })}
-              >
-                {config.grades.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-black text-slate-700">رقم الهاتف</label>
+              <label className="block text-sm font-black text-slate-700">رقم الهاتف (الشاب)</label>
               <input
                 type="tel"
                 className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-left font-bold"
                 dir="ltr"
                 value={formData.phone}
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">المنطقة</label>
+              <select
+                className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white font-bold"
+                value={formData.region}
+                onChange={e => setFormData({ ...formData, region: e.target.value })}
+              >
+                <option value="ترعة عبد العال 1">ترعة عبد العال 1</option>
+                <option value="ترعة عبد العال 2">ترعة عبد العال 2</option>
+                <option value="منطقة الكنيسة">منطقة الكنيسة</option>
+                <option value="التقسيم">التقسيم</option>
+                <option value="منطقة الملكة">منطقة الملكة</option>
+                <option value="منطقة أبو زيد">منطقة أبو زيد</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">رقم الأب</label>
+              <input
+                type="tel"
+                className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-left font-bold"
+                dir="ltr"
+                value={formData.fatherPhone}
+                onChange={e => setFormData({ ...formData, fatherPhone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">رقم الأم</label>
+              <input
+                type="tel"
+                className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-left font-bold"
+                dir="ltr"
+                value={formData.motherPhone}
+                onChange={e => setFormData({ ...formData, motherPhone: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">عدد الإخوة</label>
+              <input
+                type="number"
+                className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold"
+                value={formData.siblingsCount}
+                onChange={e => setFormData({ ...formData, siblingsCount: parseInt(e.target.value) || 0 })}
               />
             </div>
           </div>

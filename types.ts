@@ -10,6 +10,10 @@ export interface Youth {
   addedAt: number;
   confessionFather?: string; // اسم أب الاعتراف الثابت
   address?: string; // عنوان الشاب
+  region?: string; // المنطقة
+  fatherPhone?: string; // رقم الأب
+  motherPhone?: string; // رقم الأم
+  siblingsCount?: number; // عدد الإخوة
 }
 
 export interface Servant {
@@ -23,7 +27,8 @@ export interface Servant {
 
 export interface AttendanceRecord {
   id: string;
-  youthId: string;
+  youthId?: string; // Optional because it could be a servant
+  servantId?: string; // Optional because it could be a youth
   date: string; 
   liturgy: boolean;
   liturgyTime?: string; // وقت حضور القداس

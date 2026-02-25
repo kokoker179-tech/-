@@ -11,7 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { generateFullReportPDF } from '../constants';
+import { generateFullReportPDF, generateDetailedYouthReportPDF, formatDateArabic } from '../constants';
 
 interface YouthWithStats extends Youth {
   stats: {
@@ -105,10 +105,13 @@ export const YouthList: React.FC = () => {
 
   const generateSinglePDF = async (youth: YouthWithStats) => {
     setIsGenerating(true);
-    const doc = new jsPDF();
-    doc.text(`تقرير: ${youth.name}`, 10, 10);
-    doc.text(`نسبة الالتزام: ${youth.stats.percentage}%`, 10, 20);
-    doc.save(`تقرير_${youth.name}.pdf`);
+    const yHistory = records.filter(r => r.youthId === youth.id).map(r => ({
+      formatted: formatDateArabic(r.date),
+      status: 'present',
+      record: r
+    }));
+    const yPoints = storageService.getMarathonActivityPoints().filter(p => p.youthId === youth.id);
+    await generateDetailedYouthReportPDF(youth, yHistory, yPoints);
     setIsGenerating(false);
   };
 

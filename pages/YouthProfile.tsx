@@ -6,13 +6,13 @@ import { Youth, AttendanceRecord, Marathon, MarathonGroup } from '../types';
 import { 
   ArrowRight, Church, Users, BookOpen, ShieldCheck, 
   Calendar, Share2, Award, LogOut, Hash, Check, 
-  TrendingUp, Star, Trophy, Target, FileDown, Loader2, X
+  TrendingUp, Star, Trophy, Target, FileDown, Loader2, X, Wine, Clock
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell
 } from 'recharts';
-import { isPastDeadline, formatDateArabic, getActiveFriday } from '../constants';
+import { isPastDeadline, formatDateArabic, getActiveFriday, generateDetailedYouthReportPDF } from '../constants';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -31,7 +31,7 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const [marathonPoints, setMarathonPoints] = useState<any[]>([]);
   const [summary, setSummary] = useState({ 
     present: 0, absent: 0, totalFridays: 0, 
-    liturgy: 0, meeting: 0, bible: 0, confession: 0, visitation: 0 
+    liturgy: 0, meeting: 0, bible: 0, confession: 0, visitation: 0, communion: 0 
   });
   const [isAdmin, setIsAdmin] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -83,23 +83,22 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
       meeting: allRecords.filter(r => r.meeting).length,
       bible: allRecords.filter(r => r.bibleReading).length,
       confession: allRecords.filter(r => r.confession).length,
-      visitation: allRecords.filter(r => r.visitation).length
+      visitation: allRecords.filter(r => r.visitation).length,
+      communion: allRecords.filter(r => r.communion).length
     });
   };
 
   const downloadPDFReport = async () => {
     if (!youth) return;
     setIsGenerating(true);
-    const doc = new jsPDF();
-    doc.text(`تقرير: ${youth.name}`, 10, 10);
-    doc.save(`تقرير_${youth.name}.pdf`);
+    await generateDetailedYouthReportPDF(youth, weeklyHistory, marathonPoints);
     setIsGenerating(false);
   };
 
   const handleFullLogout = () => { 
     if (onLogout) onLogout(); 
     else storageService.logout(); 
-    navigate('/youth-portal'); 
+    navigate('/register-attendance'); 
   };
   const shareMyProfile = () => {
     const baseUrl = window.location.origin + window.location.pathname;
@@ -176,6 +175,11 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
               <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Hash size={16} /> الكود: {youth.code}
               </span>
+              {youth.region && (
+                <span className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-5 py-2 rounded-full text-sm font-black border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
+                  <Target size={16} /> المنطقة: {youth.region}
+                </span>
+              )}
               {marathonPoints.length > 0 && (
                 <span className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-5 py-2 rounded-full text-sm font-black border border-amber-200 dark:border-amber-800 flex items-center gap-2">
                   <Star size={16} /> نقاط الماراثون: {marathonPoints.reduce((sum, p) => sum + p.points, 0)}
@@ -185,12 +189,35 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
             <div className="w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-200 dark:border-slate-700">
               <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000" style={{ width: `${attendanceRate}%` }}></div>
             </div>
+            {attendanceRate >= 90 && (
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-xl border border-amber-200 animate-bounce">
+                <Trophy size={16} />
+                <span className="text-xs font-black">أنت بطل! التزامك رائع جداً</span>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-right">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">رقم الأب</p>
+                  <p className="font-bold text-slate-700 dark:text-slate-200">{youth.fatherPhone || '—'}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">رقم الأم</p>
+                  <p className="font-bold text-slate-700 dark:text-slate-200">{youth.motherPhone || '—'}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">عدد الإخوة</p>
+                  <p className="font-bold text-slate-700 dark:text-slate-200">{youth.siblingsCount || 0}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
         <StatCard icon={Church} label="القداسات" value={summary.liturgy} color="amber" />
+        <StatCard icon={Wine} label="التناول" value={summary.communion} color="rose" />
         <StatCard icon={Users} label="الاجتماعات" value={summary.meeting} color="emerald" />
         <StatCard icon={BookOpen} label="قراءات إنجيل" value={summary.bible} color="blue" />
         <StatCard icon={ShieldCheck} label="سر الاعتراف" value={summary.confession} color="purple" />
@@ -206,10 +233,11 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
           <table className="w-full text-right">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                <th className="px-8 py-4">التاريخ</th>
+                <th className="px-8 py-4">التاريخ / اليوم</th>
                 <th className="px-8 py-4 text-center">الحالة</th>
-                <th className="px-8 py-4 text-center">قداس</th>
-                <th className="px-8 py-4 text-center">اجتماع</th>
+                <th className="px-8 py-4 text-center">قداس / وقت</th>
+                <th className="px-8 py-4 text-center">تناول</th>
+                <th className="px-8 py-4 text-center">اجتماع / وقت</th>
                 <th className="px-8 py-4 text-center">إنجيل</th>
                 <th className="px-8 py-4 text-center">اعتراف</th>
               </tr>
@@ -230,10 +258,19 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                     </span>
                   </td>
                   <td className="px-8 py-5 text-center">
-                    {h.record.liturgy ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                    <div className="flex flex-col items-center">
+                      {h.record.liturgy ? <Check size={20} className="text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                      {h.record.liturgyTime && <span className="text-[10px] font-bold text-slate-400">{h.record.liturgyTime}</span>}
+                    </div>
                   </td>
                   <td className="px-8 py-5 text-center">
-                    {h.record.meeting ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                    {h.record.communion ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <div className="flex flex-col items-center">
+                      {h.record.meeting ? <Check size={20} className="text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                      {h.record.meetingTime && <span className="text-[10px] font-bold text-slate-400">{h.record.meetingTime}</span>}
+                    </div>
                   </td>
                   <td className="px-8 py-5 text-center">
                     {h.record.bibleReading ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
@@ -248,7 +285,7 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[3rem] p-12 text-white text-center relative overflow-hidden shadow-2xl">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[3rem] p-12 text-white text-center relative overflow-hidden shadow-2xl mb-10">
         <div className="relative z-10 space-y-4">
           <Trophy size={52} className="mx-auto text-amber-400 drop-shadow-lg animate-bounce" />
           <h3 className="text-3xl font-black">عاش يا بطل!</h3>
@@ -257,6 +294,46 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
           </p>
         </div>
       </div>
+
+      {marathonPoints.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-amber-50/50 dark:bg-amber-900/10">
+            <h3 className="text-xl font-black text-amber-800 dark:text-amber-300 flex items-center gap-3">
+              <Star className="text-amber-500" /> سجل نقاط الماراثون
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-8 py-4">التاريخ</th>
+                  <th className="px-8 py-4">النشاط</th>
+                  <th className="px-8 py-4 text-center">النقاط</th>
+                  <th className="px-8 py-4">السبب</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {marathonPoints.map((p, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-8 py-5">
+                      <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{formatDateArabic(p.weekDate)}</p>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black">{p.activity}</span>
+                    </td>
+                    <td className="px-8 py-5 text-center">
+                      <p className="font-black text-emerald-600">+{p.points}</p>
+                    </td>
+                    <td className="px-8 py-5">
+                      <p className="text-xs font-bold text-slate-500">{p.reason}</p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -266,7 +343,8 @@ const StatCard = ({ icon: Icon, label, value, color }: any) => {
     amber: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
     emerald: { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
     blue: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
-    purple: { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' }
+    purple: { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
+    rose: { bg: 'bg-rose-100 dark:bg-rose-900/50', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' }
   };
   const theme = themes[color];
 

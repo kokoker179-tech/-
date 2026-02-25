@@ -8,7 +8,7 @@ import { WeeklyStats, Youth, AttendanceRecord } from '../types';
 import { 
   CalendarDays, Sparkles, Clock, AlertTriangle, TrendingUp, 
   ShieldCheck, BookOpen, Heart, Church, Users, Award, 
-  ChevronLeft, BarChart3
+  ChevronLeft, BarChart3, Wine
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -19,6 +19,7 @@ interface ExtendedStats extends WeeklyStats {
   bibleReaders: number;
   confessedToday: number;
   visitedToday: number;
+  communionToday: number;
   attendanceTrend: { date: string; count: number }[];
   totalYouth: number;
   totalServants: number;
@@ -26,6 +27,7 @@ interface ExtendedStats extends WeeklyStats {
   newYouthMonth: number;
   retentionRate: number;
   gradeDistribution: { name: string; value: number }[];
+  regionDistribution: { name: string; value: number }[];
   // Long-term averages
   avgAttendance: number;
   avgLiturgy: number;
@@ -33,20 +35,22 @@ interface ExtendedStats extends WeeklyStats {
   avgBible: number;
   avgConfession: number;
   avgVisitation: number;
+  avgCommunion: number;
 }
 
 export const Dashboard: React.FC = () => {
   const [activeDate, setActiveDate] = useState(getActiveFriday());
   const [stats, setStats] = useState<ExtendedStats>({ 
     totalToday: 0, totalLiturgy: 0, totalMeeting: 0, earlyBirds: 0,
-    bibleReaders: 0, confessedToday: 0, visitedToday: 0,
+    bibleReaders: 0, confessedToday: 0, visitedToday: 0, communionToday: 0,
     attendanceTrend: [], totalYouth: 0, totalServants: 0, absentToday: 0,
-    newYouthMonth: 0, retentionRate: 0, gradeDistribution: [],
-    avgAttendance: 0, avgLiturgy: 0, avgMeeting: 0, avgBible: 0, avgConfession: 0, avgVisitation: 0
+    newYouthMonth: 0, retentionRate: 0, gradeDistribution: [], regionDistribution: [],
+    avgAttendance: 0, avgLiturgy: 0, avgMeeting: 0, avgBible: 0, avgConfession: 0, avgVisitation: 0, avgCommunion: 0
   });
   const [confessionAlerts, setConfessionAlerts] = useState<Youth[]>([]);
   const [visitationAlerts, setVisitationAlerts] = useState<Youth[]>([]);
   const [attendanceAlerts, setAttendanceAlerts] = useState<Youth[]>([]);
+  const [noCommunionAlerts, setNoCommunionAlerts] = useState<Youth[]>([]);
   const [consecutiveAbsenceAlerts, setConsecutiveAbsenceAlerts] = useState<Youth[]>([]);
   const lang = storageService.getLang();
   const recentFridaysList = getRecentFridays(12);
@@ -79,6 +83,7 @@ export const Dashboard: React.FC = () => {
     const avgBib = ltRecords.filter(r => r.bibleReading).length / weeksCount;
     const avgConf = ltRecords.filter(r => r.confession).length / weeksCount;
     const avgVis = ltRecords.filter(r => r.visitation).length / weeksCount;
+    const avgCom = ltRecords.filter(r => r.communion).length / weeksCount;
 
     // الشباب الجدد (آخر 30 يوم)
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -101,6 +106,16 @@ export const Dashboard: React.FC = () => {
       }).length
     }));
 
+    // توزيع المناطق للحضور اليوم
+    const regions = ["ترعة عبد العال 1", "ترعة عبد العال 2", "منطقة الكنيسة", "التقسيم", "منطقة الملكة", "منطقة أبو زيد"];
+    const rDist = regions.map(r => ({
+      name: r,
+      value: todayRecords.filter(rec => {
+        const y = youthList.find(youth => youth.id === rec.youthId);
+        return y?.region === r;
+      }).length
+    }));
+
     setStats({
       totalToday: todayRecords.length,
       totalLiturgy: todayRecords.filter(r => r.liturgy).length,
@@ -109,6 +124,7 @@ export const Dashboard: React.FC = () => {
       bibleReaders: todayRecords.filter(r => r.bibleReading).length,
       confessedToday: todayRecords.filter(r => r.confession).length,
       visitedToday: todayRecords.filter(r => r.visitation).length,
+      communionToday: todayRecords.filter(r => r.communion).length,
       attendanceTrend: trend,
       totalYouth: youthList.length,
       totalServants: servantsList.length,
@@ -116,12 +132,14 @@ export const Dashboard: React.FC = () => {
       newYouthMonth: newYouth,
       retentionRate: youthList.length > 0 ? (regularYouth / youthList.length) * 100 : 0,
       gradeDistribution: gDist,
+      regionDistribution: rDist,
       avgAttendance: avgAtt,
       avgLiturgy: avgLit,
       avgMeeting: avgMeet,
       avgBible: avgBib,
       avgConfession: avgConf,
-      avgVisitation: avgVis
+      avgVisitation: avgVis,
+      avgCommunion: avgCom
     });
 
     // تنبيهات الاعتراف (الذين لم يعترفوا في آخر أسبوعين)
@@ -145,6 +163,13 @@ export const Dashboard: React.FC = () => {
     const attendeesIds = todayRecords.map(r => r.youthId);
     const aAlerts = youthList.filter(y => !attendeesIds.includes(y.id)).slice(0, 10);
     setAttendanceAlerts(aAlerts);
+
+    // تنبيهات التناول (الذين حضروا القداس ولم يتناولوا)
+    const ncAlerts = youthList.filter(y => {
+      const rec = todayRecords.find(r => r.youthId === y.id);
+      return rec?.liturgy && !rec?.communion;
+    }).slice(0, 10);
+    setNoCommunionAlerts(ncAlerts);
 
     // تنبيهات الغياب المتكرر (أسبوعين متتاليين)
     const lastTwoFridays = getRecentFridays(2);
@@ -207,9 +232,10 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard icon={Users} label="حضور الأسبوع" value={stats.totalToday} sub={`${stats.absentToday} غائب`} color="blue" avg={stats.avgAttendance} />
         <StatCard icon={Church} label="حضور القداس" value={stats.totalLiturgy} sub={`${Math.round((stats.totalLiturgy/stats.totalToday || 0)*100)}% من الحضور`} color="amber" avg={stats.avgLiturgy} />
+        <StatCard icon={Wine} label="التناول" value={stats.communionToday} sub={`${Math.round((stats.communionToday/stats.totalLiturgy || 0)*100)}% من القداس`} color="rose" avg={stats.avgCommunion} />
         <StatCard icon={Users} label="حضور الاجتماع" value={stats.totalMeeting} sub={`${Math.round((stats.totalMeeting/stats.totalToday || 0)*100)}% من الحضور`} color="emerald" avg={stats.avgMeeting} />
         <StatCard icon={Award} label="نسبة الالتزام" value={`${Math.round(stats.retentionRate)}%`} sub="حضور مستمر" color="indigo" />
       </div>
@@ -249,6 +275,7 @@ export const Dashboard: React.FC = () => {
           <div className="space-y-4">
              <div className="flex flex-col gap-3">
                 <MiniIndicator label="حضور قداس" percent={(stats.totalLiturgy/stats.totalToday || 0)*100} avg={(stats.avgLiturgy/stats.avgAttendance || 0)*100} color="amber" />
+                <MiniIndicator label="التناول" percent={(stats.communionToday/stats.totalLiturgy || 0)*100} avg={(stats.avgCommunion/stats.avgLiturgy || 0)*100} color="rose" />
                 <MiniIndicator label="حضور اجتماع" percent={(stats.totalMeeting/stats.totalToday || 0)*100} avg={(stats.avgMeeting/stats.avgAttendance || 0)*100} color="emerald" />
                 <MiniIndicator label="قراءة إنجيل" percent={(stats.bibleReaders/stats.totalToday || 0)*100} avg={(stats.avgBible/stats.avgAttendance || 0)*100} color="indigo" />
                 <MiniIndicator label="اعتراف" percent={(stats.confessedToday/stats.totalToday || 0)*100} avg={(stats.avgConfession/stats.avgAttendance || 0)*100} color="purple" />
@@ -273,6 +300,28 @@ export const Dashboard: React.FC = () => {
                   <div 
                     className="h-full bg-blue-500 rounded-full" 
                     style={{ width: `${(g.value / stats.totalToday || 0) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Region Distribution */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+            <BarChart3 className="text-emerald-600" /> توزيع المناطق (اليوم)
+          </h3>
+          <div className="space-y-4">
+            {stats.regionDistribution.map((r, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-600">{r.name}</span>
+                  <span className="text-emerald-600">{r.value} شاب</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-500 rounded-full" 
+                    style={{ width: `${(r.value / stats.totalToday || 0) * 100}%` }}
                   ></div>
                 </div>
               </div>
@@ -327,6 +376,33 @@ export const Dashboard: React.FC = () => {
               </div>
             )) : (
               <div className="p-10 text-center text-slate-400 font-bold">تم افتقاد الجميع بنجاح ❤️</div>
+            )}
+          </div>
+        </div>
+
+        {/* No Communion Alerts */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden lg:col-span-2">
+          <div className="p-6 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+            <h3 className="font-black text-rose-800 flex items-center gap-2"><Wine size={20} /> حضروا القداس ولم يتناولوا (هذا الأسبوع)</h3>
+            <span className="text-[10px] font-black bg-rose-600 text-white px-2 py-1 rounded-full">{noCommunionAlerts.length}</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-slate-50 rtl:divide-x-reverse">
+            {noCommunionAlerts.length > 0 ? noCommunionAlerts.map(y => (
+              <div key={y.id} className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors border-b border-slate-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-black">{y.name[0]}</div>
+                  <div>
+                    <p className="font-black text-slate-800 text-sm">{y.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">{y.grade} | {y.phone}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <a href={`tel:${y.phone}`} className="p-2 text-rose-600 hover:bg-rose-100 rounded-lg transition-all"><Heart size={18} /></a>
+                  <Link to={`/youth-profile/${y.id}`} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-all"><ChevronLeft size={18} /></Link>
+                </div>
+              </div>
+            )) : (
+              <div className="p-10 text-center text-slate-400 font-bold col-span-2">الكل تناول اليوم! بركة كبيرة 🎉</div>
             )}
           </div>
         </div>
@@ -402,6 +478,7 @@ const StatCard = ({ icon: Icon, label, value, sub, color, avg }: any) => {
     amber: 'bg-amber-500 shadow-amber-100',
     indigo: 'bg-indigo-600 shadow-indigo-100',
     purple: 'bg-purple-600 shadow-purple-100',
+    rose: 'bg-rose-600 shadow-rose-100',
     emerald: 'bg-emerald-600 shadow-emerald-100'
   };
   return (

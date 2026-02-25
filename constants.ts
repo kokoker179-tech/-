@@ -184,11 +184,73 @@ export const generateMarathonFinalReport = async (marathon: any, group: any, all
 };
 
 export const generateFullReportPDF = async (youthList: any[], records: any[]) => {
-  const doc = new jsPDF();
-  doc.text("تقرير شامل لجميع الشباب", 10, 10);
-  // Simplified for now
-  youthList.forEach((y, i) => {
-    doc.text(`${i+1}. ${y.name} - ${y.stats.percentage}%`, 10, 20 + (i * 10));
+  const doc = new jsPDF('p', 'mm', 'a4');
+  doc.setFontSize(20);
+  doc.text("قائمة الشباب", 105, 15, { align: 'center' });
+  
+  const headers = [["الاسم", "المرحلة", "رقم الهاتف", "الكود"]];
+  const data = youthList.map(y => [y.name, y.grade, y.phone || '—', y.code]);
+
+  (doc as any).autoTable({
+    head: headers,
+    body: data,
+    startY: 25,
+    styles: { font: 'Cairo', halign: 'right' },
+    headStyles: { fillStyle: '#2563eb' }
   });
-  doc.save("التقرير_الشامل.pdf");
+
+  doc.save("قائمة_الشباب.pdf");
+};
+
+export const generateDetailedYouthReportPDF = async (youth: any, history: any[], points: any[]) => {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  
+  doc.setFontSize(22);
+  doc.text(`تقرير متابعة: ${youth.name}`, 105, 20, { align: 'center' });
+  
+  doc.setFontSize(14);
+  doc.text(`الكود: ${youth.code}`, 190, 35, { align: 'right' });
+  doc.text(`المرحلة: ${youth.grade}`, 190, 45, { align: 'right' });
+  doc.text(`المنطقة: ${youth.region || '—'}`, 190, 55, { align: 'right' });
+  
+  doc.setFontSize(18);
+  doc.text("سجل الحضور", 190, 75, { align: 'right' });
+  
+  const attendanceHeaders = [["التاريخ", "الحالة", "قداس", "تناول", "اجتماع"]];
+  const attendanceData = history.map(h => [
+    h.formatted,
+    h.status === 'present' ? 'حضور' : 'غياب',
+    h.record.liturgy ? '✅' : '❌',
+    h.record.communion ? '✅' : '❌',
+    h.record.meeting ? '✅' : '❌'
+  ]);
+
+  (doc as any).autoTable({
+    head: attendanceHeaders,
+    body: attendanceData,
+    startY: 80,
+    styles: { font: 'Cairo', halign: 'right' }
+  });
+
+  if (points.length > 0) {
+    const finalY = (doc as any).lastAutoTable.finalY || 80;
+    doc.text("نقاط الماراثون", 190, finalY + 20, { align: 'right' });
+    
+    const pointHeaders = [["التاريخ", "النشاط", "النقاط", "السبب"]];
+    const pointData = points.map(p => [
+      formatDateArabic(p.weekDate),
+      p.activity,
+      p.points,
+      p.reason
+    ]);
+
+    (doc as any).autoTable({
+      head: pointHeaders,
+      body: pointData,
+      startY: finalY + 25,
+      styles: { font: 'Cairo', halign: 'right' }
+    });
+  }
+
+  doc.save(`تقرير_${youth.name}.pdf`);
 };

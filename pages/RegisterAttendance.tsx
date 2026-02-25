@@ -26,7 +26,9 @@ const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (
   }, [value]);
 
   const handleDateChange = (d: string, m: string) => {
-    if (d && m && d.length <= 2 && m.length <= 2) {
+    const dayNum = parseInt(d);
+    const monthNum = parseInt(m);
+    if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
       const formattedDate = `2026-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
       onChange(formattedDate);
     }
@@ -87,62 +89,59 @@ export const RegisterAttendance: React.FC = () => {
     return () => window.removeEventListener('storage_updated', loadData);
   }, [selectedDate]);
 
-  const updateRecordField = async (youthId: string, field: keyof AttendanceRecord, value: any) => {
-    const existingRecord = records.find(r => r.youthId === youthId);
+  const updateRecordField = async (personId: string, field: keyof AttendanceRecord, value: any, isServant: boolean) => {
+    const existingRecord = records.find(r => isServant ? r.servantId === personId : r.youthId === personId);
     let newRecord: AttendanceRecord;
 
     if (existingRecord) {
       newRecord = { ...existingRecord, [field]: value };
-      // إذا تم تفعيل الاعتراف اليوم، سجل تاريخ اليوم تلقائياً
       if (field === 'confession' && value === true) {
         newRecord.confessionDate = selectedDate;
       }
     } else {
       newRecord = {
-        id: `${youthId}-${selectedDate}`,
-        youthId,
+        id: `${personId}-${selectedDate}`,
+        youthId: isServant ? undefined : personId,
+        servantId: isServant ? personId : undefined,
         date: selectedDate,
         liturgy: field === 'liturgy' ? value : false,
         meeting: field === 'meeting' ? value : false,
         visitation: field === 'visitation' ? value : false,
         bibleReading: field === 'bibleReading' ? value : false,
         confession: field === 'confession' ? value : false,
+        communion: field === 'communion' ? value : false,
         [field]: value
       };
       if (field === 'confession' && value === true) newRecord.confessionDate = selectedDate;
     }
 
     const allRecords = storageService.getAttendance();
-    const idx = allRecords.findIndex(r => r.youthId === youthId && r.date === selectedDate);
+    const idx = allRecords.findIndex(r => (isServant ? r.servantId === personId : r.youthId === personId) && r.date === selectedDate);
     
     if (idx > -1) allRecords[idx] = newRecord;
     else allRecords.push(newRecord);
 
     // Auto-update Marathon Points if applicable
-    if (activeMarathon && activeTab === 'youth' && activeMarathon.startDate <= selectedDate && activeMarathon.endDate >= selectedDate) {
+    if (!isServant && activeMarathon && activeMarathon.startDate <= selectedDate && activeMarathon.endDate >= selectedDate) {
       const userGroups = marathonGroups.filter(g => activeMarathon.groupIds.includes(g.id));
-      const isInMarathon = userGroups.some(g => g.youthIds.includes(youthId));
+      const isInMarathon = userGroups.some(g => g.youthIds.includes(personId));
       
       if (isInMarathon) {
-        const points = storageService.getMarathonActivityPoints();
         const pointSystem = activeMarathon.pointSystem;
         
-        // Helper to update point
         const updatePoint = (activity: keyof typeof pointSystem, reason: string) => {
-          // Remove existing point for this activity/date/youth
           const points = storageService.getMarathonActivityPoints();
           const filteredPoints = points.filter(p => 
             !(p.marathonId === activeMarathon.id && 
-              p.youthId === youthId && 
+              p.youthId === personId && 
               p.weekDate === selectedDate && 
               p.activity === activity)
           );
           
-          // Add new point if value is true
           if (value === true) {
             filteredPoints.push({
               marathonId: activeMarathon.id,
-              youthId,
+              youthId: personId,
               weekDate: selectedDate,
               activity: activity as keyof MarathonPointSystem,
               points: pointSystem[activity],
@@ -175,7 +174,7 @@ export const RegisterAttendance: React.FC = () => {
 
   const renderPersonList = (people: (Youth | Servant)[], isServant: boolean) => {
     return people.map(person => {
-      const record = records.find(r => r.youthId === person.id);
+      const record = records.find(r => isServant ? r.servantId === person.id : r.youthId === person.id);
       const isExpanded = expandedId === person.id;
       const isRegistered = !!record;
       
@@ -202,7 +201,7 @@ export const RegisterAttendance: React.FC = () => {
                    <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
                      {isServant ? (person as Servant).role : (person as Youth).grade}
                    </span>
-                   {record?.liturgyTime && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">حضر: {record.liturgyTime}</span>}
+                   {record?.liturgyTime && !isServant && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">حضر: {record.liturgyTime}</span>}
                 </div>
               </div>
             </div>
@@ -212,93 +211,110 @@ export const RegisterAttendance: React.FC = () => {
           {isExpanded && (
             <div className="p-8 bg-slate-50/50 border-t-2 border-slate-50 space-y-8 animate-in slide-in-from-top-4">
               {/* Status Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy)} />
-                <StatusToggle active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(person.id, 'meeting', !record?.meeting)} />
-                <StatusToggle active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(person.id, 'bibleReading', !record?.bibleReading)} />
-                <StatusToggle active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(person.id, 'confession', !record?.confession)} />
-                <StatusToggle active={record?.visitation} icon={Heart} label="افتقاد" color="rose" onClick={() => updateRecordField(person.id, 'visitation', !record?.visitation)} />
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
+                <StatusToggle 
+                  active={record?.communion} 
+                  icon={Wine} 
+                  label="تناول" 
+                  color="rose" 
+                  disabled={!record?.liturgy}
+                  onClick={() => {
+                    if (record?.liturgy) {
+                      updateRecordField(person.id, 'communion', !record?.communion, isServant);
+                    }
+                  }} 
+                />
+                <StatusToggle active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(person.id, 'meeting', !record?.meeting, isServant)} />
+                {!isServant && (
+                  <>
+                    <StatusToggle active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(person.id, 'bibleReading', !record?.bibleReading, isServant)} />
+                    <StatusToggle active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(person.id, 'confession', !record?.confession, isServant)} />
+                    <StatusToggle active={record?.visitation} icon={Heart} label="افتقاد" color="rose" onClick={() => updateRecordField(person.id, 'visitation', !record?.visitation, isServant)} />
+                  </>
+                )}
               </div>
 
-              {isInMarathon && (
+              {isInMarathon && !isServant && (
                 <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                   <h5 className="font-black text-amber-800 mb-4 flex items-center gap-2"><Trophy size={18}/> نقاط الماراثون الإضافية</h5>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <StatusToggle active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha)} />
-                    <StatusToggle active={record?.communion} icon={Wine} label="تناول" color="rose" onClick={() => updateRecordField(person.id, 'communion', !record?.communion)} />
-                    <StatusToggle active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting)} />
-                    <StatusToggle active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart)} />
-                    <StatusToggle active={record?.exodusCompetition} icon={Scroll} label="مسابقة سفر الخروج" color="amber" onClick={() => updateRecordField(person.id, 'exodusCompetition', !record?.exodusCompetition)} />
-                    <StatusToggle active={record?.weeklyCompetition} icon={Trophy} label="مسابقة الجمعة" color="purple" onClick={() => updateRecordField(person.id, 'weeklyCompetition', !record?.weeklyCompetition)} />
+                    <StatusToggle active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha, isServant)} />
+                    <StatusToggle active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting, isServant)} />
+                    <StatusToggle active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart, isServant)} />
+                    <StatusToggle active={record?.exodusCompetition} icon={Scroll} label="مسابقة سفر الخروج" color="amber" onClick={() => updateRecordField(person.id, 'exodusCompetition', !record?.exodusCompetition, isServant)} />
+                    <StatusToggle active={record?.weeklyCompetition} icon={Trophy} label="مسابقة الجمعة" color="purple" onClick={() => updateRecordField(person.id, 'weeklyCompetition', !record?.weeklyCompetition, isServant)} />
                   </div>
                 </div>
               )}
 
               {/* Time & Date Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={14} className="text-amber-500" /> وقت القداس (ساعة : دقيقة)
-                  </label>
-                  <input 
-                    type="time" value={record?.liturgyTime || ''} 
-                    onChange={(e) => updateRecordField(person.id, 'liturgyTime', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-amber-400"
-                  />
+              {!isServant && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={14} className="text-amber-500" /> وقت القداس (ساعة : دقيقة)
+                    </label>
+                    <input 
+                      type="time" value={record?.liturgyTime || ''} 
+                      onChange={(e) => updateRecordField(person.id, 'liturgyTime', e.target.value, isServant)}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={14} className="text-emerald-500" /> وقت الاجتماع (ساعة : دقيقة)
+                    </label>
+                    <input 
+                      type="time" value={record?.meetingTime || ''} 
+                      onChange={(e) => updateRecordField(person.id, 'meetingTime', e.target.value, isServant)}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <ShieldCheck size={14} className="text-purple-500" /> اعترف مع مين؟
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="اسم أبونا..."
+                      value={record?.confessorName || ''} 
+                      onChange={(e) => updateRecordField(person.id, 'confessorName', e.target.value, isServant)}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-purple-400"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={14} className="text-purple-500" /> تاريخ الاعتراف الفعلي
+                    </label>
+                    <DateInput 
+                      value={record?.confessionDate}
+                      onChange={(val) => updateRecordField(person.id, 'confessionDate', val, isServant)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <UserCheck size={14} className="text-rose-500" /> مين افتقده؟
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="اسم الخادم..."
+                      value={record?.visitationDetails?.visitorName || ''} 
+                      onChange={(e) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitorName: e.target.value }, isServant)}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-rose-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={14} className="text-rose-500" /> تاريخ الافتقاد
+                    </label>
+                    <DateInput 
+                      value={record?.visitationDetails?.visitDate}
+                      onChange={(val) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitDate: val }, isServant)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={14} className="text-emerald-500" /> وقت الاجتماع (ساعة : دقيقة)
-                  </label>
-                  <input 
-                    type="time" value={record?.meetingTime || ''} 
-                    onChange={(e) => updateRecordField(person.id, 'meetingTime', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-emerald-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <ShieldCheck size={14} className="text-purple-500" /> اعترف مع مين؟
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="اسم أبونا..."
-                    value={record?.confessorName || ''} 
-                    onChange={(e) => updateRecordField(person.id, 'confessorName', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-purple-400"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={14} className="text-purple-500" /> تاريخ الاعتراف الفعلي
-                  </label>
-                  <DateInput 
-                    value={record?.confessionDate}
-                    onChange={(val) => updateRecordField(person.id, 'confessionDate', val)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <UserCheck size={14} className="text-rose-500" /> مين افتقده؟
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="اسم الخادم..."
-                    value={record?.visitationDetails?.visitorName || ''} 
-                    onChange={(e) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitorName: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-rose-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={14} className="text-rose-500" /> تاريخ الافتقاد
-                  </label>
-                  <DateInput 
-                    value={record?.visitationDetails?.visitDate}
-                    onChange={(val) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitDate: val })}
-                  />
-                </div>
-              </div>
+              )}
 
               {isRegistered && (
                 <div className="pt-6 border-t border-slate-200 flex justify-end">
@@ -403,7 +419,7 @@ export const RegisterAttendance: React.FC = () => {
   );
 };
 
-const StatusToggle = ({ active, icon: Icon, label, color, onClick }: any) => {
+const StatusToggle = ({ active, icon: Icon, label, color, onClick, disabled }: any) => {
   const themes: any = {
     amber: active ? 'bg-amber-600 border-amber-500 text-white shadow-amber-100' : 'bg-white border-slate-100 text-slate-300',
     emerald: active ? 'bg-emerald-600 border-emerald-500 text-white shadow-emerald-100' : 'bg-white border-slate-100 text-slate-300',
@@ -413,7 +429,11 @@ const StatusToggle = ({ active, icon: Icon, label, color, onClick }: any) => {
     rose: active ? 'bg-rose-600 border-rose-500 text-white shadow-rose-100' : 'bg-white border-slate-100 text-slate-300',
   };
   return (
-    <button onClick={onClick} className={`flex flex-col items-center justify-center p-4 rounded-3xl border-2 transition-all gap-2 aspect-square hover:scale-105 active:scale-95 ${themes[color]}`}>
+    <button 
+      disabled={disabled}
+      onClick={onClick} 
+      className={`flex flex-col items-center justify-center p-4 rounded-3xl border-2 transition-all gap-2 aspect-square hover:scale-105 active:scale-95 ${themes[color]} ${disabled ? 'opacity-20 grayscale cursor-not-allowed' : ''}`}
+    >
       <Icon size={24} />
       <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
     </button>

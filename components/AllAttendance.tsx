@@ -9,6 +9,7 @@ export const AllAttendance: React.FC = () => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [youthMap, setYouthMap] = useState<Record<string, Youth>>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterMonth, setFilterMonth] = useState<string>('all');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const loadData = () => {
@@ -44,8 +45,14 @@ export const AllAttendance: React.FC = () => {
   const filteredRecords = records.filter(record => {
     const youth = youthMap[record.youthId];
     if (!youth) return false;
-    return youth.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesSearch = youth.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesMonth = filterMonth === 'all' || record.date.startsWith(filterMonth);
+    
+    return matchesSearch && matchesMonth;
   });
+
+  const months = Array.from(new Set(records.map(r => r.date.substring(0, 7)))).sort().reverse();
 
   const Indicator = ({ active, icon: Icon, colorClass }: any) => (
     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${active ? colorClass : 'bg-slate-50 dark:bg-slate-800 text-slate-200 dark:text-slate-700'}`}>
@@ -60,13 +67,25 @@ export const AllAttendance: React.FC = () => {
         <p className="text-slate-500 font-bold">الأرشيف التاريخي لكل الأيام السابقة.</p>
       </div>
 
-      <div className="mb-8 relative group">
-        <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={24} />
-        <input
-          type="text" placeholder="ابحث باسم الشاب..."
-          className="w-full pl-6 pr-14 py-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white outline-none shadow-sm text-xl font-black transition-all"
-          value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="mb-8 flex flex-col md:flex-row gap-4">
+        <div className="relative group flex-1">
+          <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={24} />
+          <input
+            type="text" placeholder="ابحث باسم الشاب..."
+            className="w-full pl-6 pr-14 py-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white outline-none shadow-sm text-xl font-black transition-all"
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <select 
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(e.target.value)}
+          className="px-8 py-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white outline-none shadow-sm font-black text-lg cursor-pointer"
+        >
+          <option value="all">كل الشهور</option>
+          {months.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">

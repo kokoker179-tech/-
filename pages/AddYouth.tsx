@@ -28,7 +28,11 @@ export const AddYouth: React.FC = () => {
     pdfDoc: '',
     code: generateRandomCode(),
     confessionFather: '',
-    address: ''
+    address: '',
+    region: 'منطقة الكنيسة',
+    fatherPhone: '',
+    motherPhone: '',
+    siblingsCount: 0
   });
   const [success, setSuccess] = useState(false);
 
@@ -46,7 +50,11 @@ export const AddYouth: React.FC = () => {
       code: formData.code,
       addedAt: Date.now(),
       confessionFather: formData.confessionFather,
-      address: formData.address
+      address: formData.address,
+      region: formData.region,
+      fatherPhone: formData.fatherPhone,
+      motherPhone: formData.motherPhone,
+      siblingsCount: formData.siblingsCount
     };
 
     const currentYouth = storageService.getYouth();
@@ -93,8 +101,37 @@ export const AddYouth: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-              <label className="block text-sm font-black text-slate-700">رقم الهاتف</label>
+              <label className="block text-sm font-black text-slate-700">رقم الهاتف (الشاب)</label>
               <input type="tel" className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold text-left" dir="ltr" placeholder="01xxxxxxxxx" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">رقم الأب</label>
+              <input type="tel" className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold text-left" dir="ltr" placeholder="01xxxxxxxxx" value={formData.fatherPhone} onChange={e => setFormData({ ...formData, fatherPhone: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">رقم الأم</label>
+              <input type="tel" className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold text-left" dir="ltr" placeholder="01xxxxxxxxx" value={formData.motherPhone} onChange={e => setFormData({ ...formData, motherPhone: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">المنطقة</label>
+              <select className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold" value={formData.region} onChange={e => setFormData({ ...formData, region: e.target.value })}>
+                <option value="ترعة عبد العال 1">ترعة عبد العال 1</option>
+                <option value="ترعة عبد العال 2">ترعة عبد العال 2</option>
+                <option value="منطقة الكنيسة">منطقة الكنيسة</option>
+                <option value="التقسيم">التقسيم</option>
+                <option value="منطقة الملكة">منطقة الملكة</option>
+                <option value="منطقة أبو زيد">منطقة أبو زيد</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">عدد الإخوة</label>
+              <input type="number" className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold" value={formData.siblingsCount} onChange={e => setFormData({ ...formData, siblingsCount: parseInt(e.target.value) || 0 })} />
+            </div>
           </div>
 
           <div className="space-y-2">
