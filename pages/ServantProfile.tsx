@@ -61,14 +61,16 @@ export const ServantProfile: React.FC = () => {
     });
   };
 
+  const isSpecial = storageService.isSpecialAccess();
+
   if (!servant) return null;
   const attendanceRate = summary.totalFridays > 0 ? Math.round((summary.present / summary.totalFridays) * 100) : 0;
 
   return (
     <div className="max-w-6xl mx-auto pb-20 font-['Cairo']">
       <div className="flex justify-between items-center mb-10">
-        <Link to="/servants" className="flex items-center gap-2 text-slate-600 font-black bg-white border px-6 py-3 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
-          <ArrowRight size={20} /> العودة لقائمة الخدام
+        <Link to={isSpecial ? "/special-follow-up" : "/servants"} className="flex items-center gap-2 text-slate-600 font-black bg-white border px-6 py-3 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+          <ArrowRight size={20} /> العودة {isSpecial ? "للمتابعة الخاصة" : "لقائمة الخدام"}
         </Link>
         <button className="flex items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-xl hover:bg-emerald-700 transition-all">
           <FileDown size={20} /> تحميل ملف الخادم PDF
@@ -89,7 +91,7 @@ export const ServantProfile: React.FC = () => {
                 <Award size={16} /> {servant.role}
               </span>
               <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                <Hash size={16} /> كود الخادم: {servant.id.slice(0, 5)}
+                <Hash size={16} /> كود الخادم: {servant.code}
               </span>
             </div>
             <div className="w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-200 dark:border-slate-700">

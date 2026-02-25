@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Loader2, ChevronDown, ChevronUp, Church, Users, Heart, 
   BookOpen, ShieldCheck, Clock, Calendar, X, RefreshCw, CheckCircle2, UserCheck,
-  Music, Trophy, Wine, Scroll, Brain, UtensilsCrossed, LogOut
+  Music, Trophy, Wine, Scroll, Brain, UtensilsCrossed, LogOut, Lock, Plus, Edit3, Trash2, Save, Filter, User, UserCircle, XCircle, Check
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord, Servant, Marathon, MarathonGroup, MarathonPointSystem } from '../types';
 import { getActiveFriday, formatDateArabic } from '../constants';
+import { motion, AnimatePresence } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
+import { Link } from 'react-router-dom';
 
 const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (val: string) => void }) => {
   const [day, setDay] = useState('');
@@ -68,7 +71,6 @@ export const RegisterAttendance: React.FC = () => {
   const [isAutoDate, setIsAutoDate] = useState(true);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'youth' | 'servants'>('youth');
   
   const loadData = () => {
     setYouth(storageService.getYouth());
@@ -170,7 +172,6 @@ export const RegisterAttendance: React.FC = () => {
   };
 
   const filteredYouth = youth.filter(y => y.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredServants = servants.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const renderPersonList = (people: (Youth | Servant)[], isServant: boolean) => {
     return people.map(person => {
@@ -385,28 +386,19 @@ export const RegisterAttendance: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <button 
-          onClick={() => setActiveTab('youth')}
-          className={`flex-1 py-4 rounded-2xl font-black text-lg transition-all ${activeTab === 'youth' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-500 border-2 border-slate-100 hover:bg-slate-50'}`}
-        >
-          الشباب
-        </button>
-        <button 
-          onClick={() => setActiveTab('servants')}
-          className={`flex-1 py-4 rounded-2xl font-black text-lg transition-all ${activeTab === 'servants' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : 'bg-white text-slate-500 border-2 border-slate-100 hover:bg-slate-50'}`}
-        >
-          الخدام
-        </button>
-      </div>
-
       <div className="relative mb-8">
         <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
-        <input type="text" placeholder="ابحث بالاسم هنا..." className="w-full pl-6 pr-16 py-6 rounded-[2.5rem] border-2 border-slate-100 bg-white outline-none text-xl font-black focus:border-blue-500 transition-all shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <input 
+          type="text" 
+          placeholder="ابحث بالاسم هنا..." 
+          className="w-full pl-6 pr-16 py-6 rounded-[2.5rem] border-2 border-slate-100 bg-white outline-none text-xl font-black focus:border-blue-500 transition-all shadow-sm" 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+        />
       </div>
 
       <div className="space-y-4">
-        {activeTab === 'youth' ? renderPersonList(filteredYouth, false) : renderPersonList(filteredServants, true)}
+        {renderPersonList(filteredYouth, false)}
       </div>
 
       {loading && (

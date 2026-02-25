@@ -105,13 +105,38 @@ export const YouthList: React.FC = () => {
 
   const generateSinglePDF = async (youth: YouthWithStats) => {
     setIsGenerating(true);
-    const yHistory = records.filter(r => r.youthId === youth.id).map(r => ({
-      formatted: formatDateArabic(r.date),
-      status: 'present',
-      record: r
-    }));
+    
+    // Calculate full history like in YouthProfile
+    const allRecords = records.filter(r => r.youthId === youth.id);
+    const joinDateStr = new Date(youth.addedAt).toISOString().split('T')[0];
+    const history = [];
+    let tempDate = new Date();
+    // Get last 20 Fridays
+    const day = tempDate.getDay();
+    const diff = tempDate.getDate() - day + (day === 5 ? 0 : (day < 5 ? -2 : 5));
+    tempDate.setDate(diff);
+
+    for (let i = 0; i < 20; i++) {
+      const dateStr = tempDate.toISOString().split('T')[0];
+      if (dateStr >= joinDateStr) {
+        const record = allRecords.find(r => r.date === dateStr);
+        const deadline = new Date(dateStr);
+        deadline.setHours(23, 59, 59);
+        const isPast = new Date() > deadline;
+        const isPresent = record && (record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession);
+        
+        history.push({
+          date: dateStr,
+          formatted: formatDateArabic(dateStr),
+          status: isPresent ? 'present' : (isPast ? 'absent' : 'pending'),
+          record: record || { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false }
+        });
+      } 
+      tempDate.setDate(tempDate.getDate() - 7);
+    }
+
     const yPoints = storageService.getMarathonActivityPoints().filter(p => p.youthId === youth.id);
-    await generateDetailedYouthReportPDF(youth, yHistory, yPoints);
+    await generateDetailedYouthReportPDF(youth, history, yPoints);
     setIsGenerating(false);
   };
 

@@ -224,7 +224,21 @@ export const MarathonPage: React.FC = () => {
             <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
               <div>
                 <h4 className="font-black text-slate-800 dark:text-white">{group.name}</h4>
-                <p className="text-xs text-slate-500 font-bold">الخادم: {group.servantName}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                  <p className="text-[10px] text-slate-500 font-bold">الخادم: {group.servantName}</p>
+                  <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                  <p className="text-[10px] text-blue-600 font-black">إجمالي الأسبوع: {
+                    activityPoints
+                      .filter(p => p.marathonId === activeMarathon?.id && group.youthIds.includes(p.youthId) && p.weekDate === selectedWeek)
+                      .reduce((sum, p) => sum + p.points, 0)
+                  } نقطة</p>
+                  <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                  <p className="text-[10px] text-emerald-600 font-black">إجمالي الماراثون: {
+                    activityPoints
+                      .filter(p => p.marathonId === activeMarathon?.id && group.youthIds.includes(p.youthId))
+                      .reduce((sum, p) => sum + p.points, 0)
+                  } نقطة</p>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -253,16 +267,26 @@ export const MarathonPage: React.FC = () => {
                     <div key={y.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700 dark:text-slate-200">{y.name}</span>
-                        <div className="flex gap-1 mt-1">
-                          {yWeekPoints.some(p => p.activity === 'liturgy') && <Church size={12} className="text-amber-500" />}
-                          {yWeekPoints.some(p => p.activity === 'meeting') && <Users size={12} className="text-emerald-500" />}
-                          {yWeekPoints.some(p => p.activity === 'confession') && <ShieldCheck size={12} className="text-purple-500" />}
-                          {yWeekPoints.some(p => p.activity === 'tasbeha') && <Music size={12} className="text-indigo-500" />}
-                          {yWeekPoints.some(p => p.activity === 'communion') && <Wine size={12} className="text-rose-500" />}
-                          {yWeekPoints.some(p => p.activity === 'fasting') && <UtensilsCrossed size={12} className="text-emerald-500" />}
-                          {yWeekPoints.some(p => p.activity === 'memorizationPart') && <Brain size={12} className="text-blue-500" />}
-                          {yWeekPoints.some(p => p.activity === 'exodusCompetition') && <Scroll size={12} className="text-amber-500" />}
-                          {yWeekPoints.some(p => p.activity === 'weeklyCompetition') && <Trophy size={12} className="text-purple-500" />}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {yWeekPoints.map((p, pIdx) => (
+                            <div key={pIdx} className="group/point relative">
+                              <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-[8px] font-black text-blue-600 dark:text-blue-400 rounded-md border border-blue-100 dark:border-blue-800/50 flex items-center gap-1">
+                                {p.activity === 'liturgy' && <Church size={8} />}
+                                {p.activity === 'meeting' && <Users size={8} />}
+                                {p.activity === 'confession' && <ShieldCheck size={8} />}
+                                {p.activity === 'tasbeha' && <Music size={8} />}
+                                {p.activity === 'communion' && <Wine size={8} />}
+                                {p.activity === 'fasting' && <UtensilsCrossed size={8} />}
+                                {p.activity === 'memorizationPart' && <Brain size={8} />}
+                                {p.activity === 'exodusCompetition' && <Scroll size={8} />}
+                                {p.activity === 'weeklyCompetition' && <Trophy size={8} />}
+                                {p.points}
+                              </span>
+                              <div className="absolute bottom-full right-0 mb-2 hidden group-hover/point:block z-50 bg-slate-900 text-white text-[10px] p-2 rounded-lg whitespace-nowrap shadow-xl">
+                                {p.reason || 'بدون سبب'}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                         <button 
                           onClick={() => {
@@ -296,19 +320,23 @@ export const MarathonPage: React.FC = () => {
                         </div>
                         <button 
                           onClick={() => {
-                            const activity = window.prompt('اختر النشاط (weeklyCompetition, memorizationPart, exodusCompetition, fasting, communion, tasbeha):');
+                            const activity = window.prompt('اختر النشاط:\n(weeklyCompetition, memorizationPart, exodusCompetition, fasting, communion, tasbeha)');
                             if (activity && Object.keys(activeMarathon!.pointSystem).includes(activity)) {
                               const points = activeMarathon!.pointSystem[activity as keyof MarathonPointSystem];
-                              const reason = window.prompt('السبب:', 'مشاركة متميزة');
-                              storageService.addMarathonActivityPoints({
-                                marathonId: activeMarathon!.id,
-                                youthId: y.id,
-                                weekDate: selectedWeek,
-                                activity: activity as keyof MarathonPointSystem,
-                                points,
-                                reason: reason || '',
-                                timestamp: Date.now()
-                              });
+                              const reason = window.prompt(`إضافة نقاط لـ ${y.name}\nالنشاط: ${activity}\nالنقاط: ${points}\nأدخل السبب:`, 'مشاركة متميزة');
+                              if (reason !== null) {
+                                storageService.addMarathonActivityPoints({
+                                  marathonId: activeMarathon!.id,
+                                  youthId: y.id,
+                                  weekDate: selectedWeek,
+                                  activity: activity as keyof MarathonPointSystem,
+                                  points,
+                                  reason: reason || 'مشاركة متميزة',
+                                  timestamp: Date.now()
+                                });
+                              }
+                            } else if (activity) {
+                              alert('نشاط غير صالح');
                             }
                           }}
                           className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"

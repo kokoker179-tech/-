@@ -173,7 +173,7 @@ export const Settings: React.FC = () => {
           {activeTab === 'security' && (
             <div className="max-w-md animate-in fade-in duration-500">
               <div className="space-y-3">
-                <label className="block text-sm font-black text-slate-700">كلمة سر الدخول للخدام</label>
+                <label className="block text-sm font-black text-slate-700">كلمة سر بوابة متابعة شباب الاجتماع</label>
                 <div className="relative">
                   <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                   <input type="password" placeholder="أدخل كلمة السر الجديدة" className="w-full px-6 py-5 pr-14 rounded-2xl border border-slate-200 font-black tracking-widest text-xl" value={config.adminPassword} onChange={e => setConfig({...config, adminPassword: e.target.value})} />

@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   Home, UserPlus, CheckSquare, Users, Menu, X, 
   ClipboardList, Settings, LogOut, Code, Monitor, 
-  Sun, Moon, Languages, Globe, Database, Loader2, Wifi, Trophy, UserCheck
+  Sun, Moon, Languages, Globe, Database, Loader2, Wifi, Trophy, UserCheck, ShieldCheck, UserCircle
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { t, Lang } from '../services/i18n';
@@ -185,7 +185,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
           <NavItem to="/" icon={Home} label={t('dashboard', lang)} active={location.pathname === '/'} colorClass="hover:text-blue-600" />
           <NavItem to="/register-attendance" icon={CheckSquare} label={t('registerAttendance', lang)} active={location.pathname === '/register-attendance'} colorClass="hover:text-emerald-600" />
           <NavItem to="/marathon" icon={Trophy} label={t('marathon', lang)} active={location.pathname === '/marathon'} colorClass="hover:text-amber-500" />
-          <NavItem to="/servants" icon={UserCheck} label={t('servants', lang)} active={location.pathname === '/servants'} colorClass="hover:text-rose-500" />
           <NavItem to="/youth-portal" icon={Monitor} label={t('youthPortal', lang)} active={location.pathname === '/youth-portal'} colorClass="hover:text-indigo-600" />
           <NavItem to="/all-attendance" icon={ClipboardList} label={t('fullHistory', lang)} active={location.pathname === '/all-attendance'} colorClass="hover:text-amber-600" />
           <NavItem to="/add-youth" icon={UserPlus} label={t('addNewYouth', lang)} active={location.pathname === '/add-youth'} colorClass="hover:text-purple-600" />
@@ -238,7 +237,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
               <NavItem to="/" icon={Home} label={t('dashboard', lang)} active={location.pathname === '/'} onClick={() => setIsOpen(false)} colorClass="hover:text-blue-600" />
               <NavItem to="/register-attendance" icon={CheckSquare} label={t('registerAttendance', lang)} active={location.pathname === '/register-attendance'} onClick={() => setIsOpen(false)} colorClass="hover:text-emerald-600" />
               <NavItem to="/marathon" icon={Trophy} label={t('marathon', lang)} active={location.pathname === '/marathon'} onClick={() => setIsOpen(false)} colorClass="hover:text-amber-500" />
-              <NavItem to="/servants" icon={UserCheck} label={t('servants', lang)} active={location.pathname === '/servants'} onClick={() => setIsOpen(false)} colorClass="hover:text-rose-500" />
               <NavItem to="/youth-portal" icon={Monitor} label={t('youthPortal', lang)} active={location.pathname === '/youth-portal'} onClick={() => setIsOpen(false)} colorClass="hover:text-indigo-600" />
               <NavItem to="/all-attendance" icon={ClipboardList} label={t('fullHistory', lang)} active={location.pathname === '/all-attendance'} onClick={() => setIsOpen(false)} colorClass="hover:text-amber-600" />
               <NavItem to="/add-youth" icon={UserPlus} label={t('addNewYouth', lang)} active={location.pathname === '/add-youth'} onClick={() => setIsOpen(false)} colorClass="hover:text-purple-600" />

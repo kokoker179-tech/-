@@ -5,6 +5,7 @@ const YOUTH_KEY = 'church_db_youth_v3';
 const ATTENDANCE_KEY = 'church_db_attendance_v3';
 const CONFIG_KEY = 'church_db_config_v3';
 const SESSION_KEY = 'church_session_auth_v3';
+const SPECIAL_ACCESS_KEY = 'church_special_access_v3';
 const LAST_SYNC_KEY = 'church_db_last_sync_v3';
 const DIRTY_FLAG = 'church_db_is_dirty';
 const SERVANTS_KEY = 'church_db_servants';
@@ -24,12 +25,20 @@ const DEFAULT_CONFIG: SystemConfig = {
 
 export const storageService = {
   isLoggedIn: (): boolean => localStorage.getItem(SESSION_KEY) === 'true',
-  setLoggedIn: (status: boolean) => {
-    if (status) localStorage.setItem(SESSION_KEY, 'true');
-    else localStorage.removeItem(SESSION_KEY);
+  isSpecialAccess: (): boolean => localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true',
+  setLoggedIn: (status: boolean, isSpecial: boolean = false) => {
+    if (status) {
+      localStorage.setItem(SESSION_KEY, 'true');
+      if (isSpecial) localStorage.setItem(SPECIAL_ACCESS_KEY, 'true');
+      else localStorage.removeItem(SPECIAL_ACCESS_KEY);
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SPECIAL_ACCESS_KEY);
+    }
   },
   logout: () => {
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SPECIAL_ACCESS_KEY);
   },
 
   getTheme: (): 'light' | 'dark' => (localStorage.getItem('theme') as 'light' | 'dark') || 'light',

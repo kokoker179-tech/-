@@ -14,16 +14,20 @@ import { YouthPortal } from './pages/YouthPortal';
 import { MarathonPage } from './pages/MarathonPage';
 import { ServantsPage } from './pages/ServantsPage';
 import { ServantProfile } from './pages/ServantProfile';
+import { SpecialFollowUp } from './pages/SpecialFollowUp';
+import { ServantPortal } from './pages/ServantPortal';
 import { Login } from './pages/Login';
 import { storageService } from './services/storageService';
 import { Loader2, Cpu, Database, ShieldCheck, Wifi } from 'lucide-react';
 
 const RouteManager = ({ 
   isAuthenticated, 
+  isSpecialAccess,
   onLoginSuccess, 
   handleLogout
 }: { 
   isAuthenticated: boolean, 
+  isSpecialAccess: boolean,
   onLoginSuccess: () => void, 
   handleLogout: () => void
 }) => {
@@ -46,6 +50,19 @@ const RouteManager = ({
     return <Login onLoginSuccess={onLoginSuccess} />;
   }
 
+  // Restricted Special Access Mode
+  if (isSpecialAccess) {
+    return (
+      <Layout onLogout={handleLogout} hideSidebar={true}>
+        <Routes>
+          <Route path="/special-follow-up" element={<SpecialFollowUp />} />
+          <Route path="/servant-profile/:id" element={<ServantProfile />} />
+          <Route path="*" element={<Navigate to="/special-follow-up" replace />} />
+        </Routes>
+      </Layout>
+    );
+  }
+
   return (
     <Layout onLogout={handleLogout}>
       <Routes>
@@ -58,6 +75,7 @@ const RouteManager = ({
         <Route path="/youth-list" element={<YouthList />} />
         <Route path="/marathon" element={<MarathonPage />} />
         <Route path="/servants" element={<ServantsPage />} />
+        <Route path="/servant-portal" element={<ServantPortal />} />
         <Route path="/servant-profile/:id" element={<ServantProfile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/youth-profile/:id" element={<YouthProfile onLogout={handleLogout} />} />
@@ -135,6 +153,7 @@ const SyncIndicator = () => {
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isSpecialAccess, setIsSpecialAccess] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [progress, setProgress] = useState(0);
   const [activeStep, setActiveStep] = useState(0); 
@@ -170,6 +189,7 @@ const App: React.FC = () => {
         clearInterval(timer);
         storageService.syncFromCloud(true).finally(() => {
           setIsAuthenticated(storageService.isLoggedIn());
+          setIsSpecialAccess(storageService.isSpecialAccess());
           setIsChecking(false);
         });
       }
@@ -181,6 +201,7 @@ const App: React.FC = () => {
   const handleLogout = () => {
     storageService.logout();
     setIsAuthenticated(false);
+    setIsSpecialAccess(false);
   };
 
   if (isChecking) {
@@ -261,7 +282,11 @@ const App: React.FC = () => {
     <HashRouter>
       <RouteManager 
         isAuthenticated={isAuthenticated} 
-        onLoginSuccess={() => setIsAuthenticated(true)} 
+        isSpecialAccess={isSpecialAccess}
+        onLoginSuccess={() => {
+          setIsAuthenticated(true);
+          setIsSpecialAccess(storageService.isSpecialAccess());
+        }} 
         handleLogout={handleLogout} 
       />
       <SyncIndicator />

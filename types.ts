@@ -21,6 +21,7 @@ export interface Servant {
   name: string;
   role: string; // e.g., 'خادم', 'أمين خدمة', 'أمين مساعد'
   phone: string;
+  code: string; // كود من 5 أرقام
   responsibility?: string; // e.g., 'مجموعة القديس مارمرقس'
   addedAt: number;
 }
