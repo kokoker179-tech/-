@@ -151,7 +151,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          <div className="px-8 pb-10">
+          <div className="px-8 pb-6">
             {activeTab === 'admin' ? (
               <form onSubmit={handleAdminSubmit} className="space-y-5">
                 <div className="space-y-2 text-right">
@@ -245,7 +245,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             )}
           </div>
 
-          <div className="bg-white/[0.02] py-6 px-8 text-center border-t border-white/5">
+          <div className="bg-white/[0.02] py-4 px-8 text-center border-t border-white/5">
             <p className="text-base font-black text-blue-400 flex items-center justify-center gap-2" dir="ltr">
               <span>Developer by:</span>
               <a href="https://www.instagram.com/kero_sfwat?igsh=MW13OWg0bXE2emJmYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white font-black hover:text-blue-400 transition-colors flex items-center gap-1.5">

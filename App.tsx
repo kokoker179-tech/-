@@ -263,7 +263,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center mb-16">
            <p className="text-base font-black text-slate-400 flex items-center justify-center gap-2" dir="ltr">
              <span>Developer by:</span>
              <a href="https://www.instagram.com/kero_sfwat?igsh=MW13OWg0bXE2emJmYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1.5">
