@@ -18,7 +18,7 @@ import { SpecialFollowUp } from './pages/SpecialFollowUp';
 import { ServantPortal } from './pages/ServantPortal';
 import { Login } from './pages/Login';
 import { storageService } from './services/storageService';
-import { Loader2, Cpu, Database, ShieldCheck, Wifi } from 'lucide-react';
+import { Loader2, Cpu, Database, ShieldCheck, Wifi, Instagram } from 'lucide-react';
 
 const RouteManager = ({ 
   isAuthenticated, 
@@ -264,8 +264,12 @@ const App: React.FC = () => {
         </div>
 
         <div className="relative z-10 text-center">
-           <p className="text-md font-black text-slate-400">
-             مطور بواسطة: <span className="text-blue-500">كيرلس صفوت</span>
+           <p className="text-base font-black text-slate-400 flex items-center justify-center gap-2" dir="ltr">
+             <span>Developer by:</span>
+             <a href="https://www.instagram.com/kero_sfwat?igsh=MW13OWg0bXE2emJmYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1.5">
+               <span>kerolos sfwat</span>
+               <Instagram size={18} className="text-pink-500" />
+             </a>
            </p>
            <p className="text-[7px] font-bold text-slate-600 uppercase tracking-[0.4em] mt-1 opacity-60">Angel Raphael Digital Systems</p>
         </div>
@@ -289,7 +293,7 @@ const App: React.FC = () => {
         }} 
         handleLogout={handleLogout} 
       />
-      <SyncIndicator />
+      {isAuthenticated && <SyncIndicator />}
     </HashRouter>
   );
 };

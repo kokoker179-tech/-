@@ -107,7 +107,7 @@ export const generateMarathonWeeklyReport = async (group: any, marathon: any, we
         <tbody>${rows}</tbody>
       </table>
       <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px;">
-        مطور بواسطة: كيرلس صفوت | Angel Raphael Digital Systems
+        Developer by: kerolos sfwat | Angel Raphael Digital Systems
       </div>
     </div>
   `;
@@ -170,7 +170,7 @@ export const generateMarathonFinalReport = async (marathon: any, group: any, all
       </div>
 
       <div style="text-align: center; margin-top: 60px; border-top: 1px solid #e2e8f0; pt: 20px;">
-        <p style="font-weight: bold; color: #64748b;">مطور بواسطة: كيرلس صفوت</p>
+        <p style="font-weight: bold; color: #64748b;">Developer by: kerolos sfwat</p>
         <p style="font-size: 10px; color: #94a3b8;">Angel Raphael Digital Systems | 2026</p>
       </div>
     </div>
@@ -227,7 +227,7 @@ export const generateFullReportPDF = async (youthList: any[], records: any[]) =>
         <tbody>${rows}</tbody>
       </table>
       <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px;">
-        مطور بواسطة: كيرلس صفوت | Angel Raphael Digital Systems
+        Developer by: kerolos sfwat | Angel Raphael Digital Systems
       </div>
     </div>
   `;
@@ -348,7 +348,7 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
       ${pointsSection}
 
       <div style="margin-top: 50px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-        <p style="font-weight: bold; color: #64748b; margin: 0;">مطور بواسطة: كيرلس صفوت</p>
+        <p style="font-weight: bold; color: #64748b; margin: 0;">Developer by: kerolos sfwat</p>
         <p style="font-size: 10px; color: #94a3b8;">Angel Raphael Digital Systems | 2026</p>
       </div>
     </div>

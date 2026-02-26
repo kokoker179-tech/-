@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { 
   Home, UserPlus, CheckSquare, Users, Menu, X, 
   ClipboardList, Settings, LogOut, Code, Monitor, 
-  Sun, Moon, Languages, Globe, Database, Loader2, Wifi, Trophy, UserCheck, ShieldCheck, UserCircle
+  Sun, Moon, Languages, Globe, Database, Loader2, Wifi, Trophy, UserCheck, ShieldCheck, UserCircle, Instagram
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { t, Lang } from '../services/i18n';
@@ -126,12 +126,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
   const SignatureFooter = () => (
     <div className="mt-auto py-8 text-center px-4">
       <div className="w-12 h-px bg-slate-200 dark:bg-slate-800 mx-auto mb-4"></div>
-      <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5 uppercase tracking-wider">
-        <Code size={12} className="text-blue-500" />
-        {lang === 'ar' ? 'نظام مطور بواسطة:' : 'Developed by:'} 
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-          {lang === 'ar' ? 'كيرلس صفوت' : 'Kirillos Safwat'}
-        </span>
+      <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5 uppercase tracking-wider" dir="ltr">
+        <span>Developer by:</span>
+        <a href="https://www.instagram.com/kero_sfwat?igsh=MW13OWg0bXE2emJmYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-80 transition-opacity flex items-center gap-1">
+          <span>kerolos sfwat</span>
+          <Instagram size={12} className="text-pink-500" />
+        </a>
       </p>
       <p className="text-[9px] text-slate-300 dark:text-slate-600 font-bold mt-1 uppercase">Angel Raphael Church System</p>
     </div>

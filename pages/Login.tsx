@@ -1,5 +1,5 @@
 
-import { ShieldCheck, Lock, AlertCircle, Loader2, Users, Hash, Search, ArrowRight, Sparkles, CheckCircle2, Code, Info, UserCheck } from 'lucide-react';
+import { ShieldCheck, Lock, AlertCircle, Loader2, Users, Hash, Search, ArrowRight, Sparkles, CheckCircle2, Code, Info, UserCheck, Instagram } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import React, { useState } from 'react';
 
@@ -246,8 +246,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
 
           <div className="bg-white/[0.02] py-6 px-8 text-center border-t border-white/5">
-            <p className="text-[11px] font-black text-blue-400 flex items-center justify-center gap-2">
-              <Code size={14} /> مطور بواسطة: <span className="text-white font-black underline decoration-blue-500">كيرلس صفوت</span>
+            <p className="text-base font-black text-blue-400 flex items-center justify-center gap-2" dir="ltr">
+              <span>Developer by:</span>
+              <a href="https://www.instagram.com/kero_sfwat?igsh=MW13OWg0bXE2emJmYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white font-black hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                <span>kerolos sfwat</span>
+                <Instagram size={18} className="text-pink-500" />
+              </a>
             </p>
           </div>
         </div>
