@@ -38,55 +38,74 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     const adminStatus = storageService.isLoggedIn();
     setIsAdmin(adminStatus);
     const allYouth = storageService.getYouth();
     const found = allYouth.find(y => y.id === id);
     if (found) {
       setYouth(found);
-      loadDetailedStats(found);
+      
+      const allRecords = storageService.getAttendance().filter(r => r.youthId === found.id);
+      const joinDateStr = found.addedAt ? new Date(found.addedAt).toISOString().split('T')[0] : '2020-01-01';
+      const historyMap = new Map<string, any>();
+
+      // 1. Add all actual recorded dates for this youth
+      allRecords.forEach(record => {
+        const isPresent = record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession || record.communion || record.tonia;
+        historyMap.set(record.date, {
+          date: record.date,
+          formatted: formatDateArabic(record.date),
+          status: isPresent ? 'present' : (isPastDeadline(record.date) ? 'absent' : 'pending'),
+          record: record
+        });
+      });
+
+      // 2. Add last 20 Fridays to ensure we show absences for regular meeting days
+      let tempDate = new Date(getActiveFriday());
+      for (let i = 0; i < 20; i++) {
+        const dateStr = tempDate.toISOString().split('T')[0];
+        if (dateStr >= joinDateStr && !historyMap.has(dateStr)) {
+          const isPast = isPastDeadline(dateStr);
+          historyMap.set(dateStr, {
+            date: dateStr,
+            formatted: formatDateArabic(dateStr),
+            status: isPast ? 'absent' : 'pending',
+            record: { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false, communion: false, tonia: false }
+          });
+        } 
+        tempDate.setDate(tempDate.getDate() - 7);
+      }
+
+      // 3. Convert to array and sort descending by date
+      const history = Array.from(historyMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setWeeklyHistory(history);
+      setSummary({
+        present: history.filter(h => h.status === 'present').length,
+        absent: history.filter(h => h.status === 'absent').length,
+        totalFridays: history.length,
+        liturgy: allRecords.filter(r => r.liturgy).length,
+        meeting: allRecords.filter(r => r.meeting).length,
+        bible: allRecords.filter(r => r.bibleReading).length,
+        confession: allRecords.filter(r => r.confession).length,
+        visitation: allRecords.filter(r => r.visitation).length,
+        communion: allRecords.filter(r => r.communion).length
+      });
+
       setMarathons(storageService.getMarathons());
       setGroups(storageService.getMarathonGroups());
       setMarathonPoints(storageService.getMarathonActivityPoints().filter(p => p.youthId === found.id));
     } else {
       if (id !== 'portal') navigate('/');
     }
-  }, [id, navigate]);
-
-  const loadDetailedStats = (found: Youth) => {
-    const allRecords = storageService.getAttendance().filter(r => r.youthId === found.id);
-    const joinDateStr = new Date(found.addedAt).toISOString().split('T')[0];
-    const history = [];
-    let tempDate = new Date(getActiveFriday());
-    for (let i = 0; i < 20; i++) {
-      const dateStr = tempDate.toISOString().split('T')[0];
-      if (dateStr >= joinDateStr) {
-        const record = allRecords.find(r => r.date === dateStr);
-        const isPast = isPastDeadline(dateStr);
-        const isPresent = record && (record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession);
-        history.push({
-          date: dateStr,
-          formatted: formatDateArabic(dateStr),
-          status: isPresent ? 'present' : (isPast ? 'absent' : 'pending'),
-          record: record || { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false }
-        });
-      } 
-      tempDate.setDate(tempDate.getDate() - 7);
-    }
-    setWeeklyHistory(history);
-    setSummary({
-      present: history.filter(h => h.status === 'present').length,
-      absent: history.filter(h => h.status === 'absent').length,
-      totalFridays: history.length,
-      liturgy: allRecords.filter(r => r.liturgy).length,
-      meeting: allRecords.filter(r => r.meeting).length,
-      bible: allRecords.filter(r => r.bibleReading).length,
-      confession: allRecords.filter(r => r.confession).length,
-      visitation: allRecords.filter(r => r.visitation).length,
-      communion: allRecords.filter(r => r.communion).length
-    });
   };
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('storage_updated', loadData);
+    return () => window.removeEventListener('storage_updated', loadData);
+  }, [id, navigate]);
 
   const downloadPDFReport = async () => {
     if (!youth) return;
@@ -259,28 +278,49 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                     </span>
                   </td>
                   <td className="px-8 py-5 text-center">
-                    <div className="flex flex-col items-center">
-                      {h.record.liturgy ? <Check size={20} className="text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
-                      {h.record.liturgyTime && <span className="text-[10px] font-bold text-slate-400">{h.record.liturgyTime}</span>}
+                    <div className="flex flex-col items-center gap-1.5">
+                      {h.record.liturgy ? (
+                        <>
+                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">حضر</span>
+                          {h.record.liturgyTime && <span className="text-[11px] font-bold text-slate-500" dir="ltr">⏰ {h.record.liturgyTime}</span>}
+                        </>
+                      ) : <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-3 py-1 rounded-md">غائب</span>}
                     </div>
                   </td>
                   <td className="px-8 py-5 text-center">
-                    {h.record.communion ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                    {h.record.communion ? 
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">تناول</span> : 
+                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
                   </td>
                   <td className="px-8 py-5 text-center">
-                    {h.record.tonia ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                    {h.record.tonia ? 
+                      <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-3 py-1 rounded-md">تونية</span> : 
+                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
                   </td>
                   <td className="px-8 py-5 text-center">
-                    <div className="flex flex-col items-center">
-                      {h.record.meeting ? <Check size={20} className="text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
-                      {h.record.meetingTime && <span className="text-[10px] font-bold text-slate-400">{h.record.meetingTime}</span>}
+                    <div className="flex flex-col items-center gap-1.5">
+                      {h.record.meeting ? (
+                        <>
+                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">حضر</span>
+                          {h.record.meetingTime && <span className="text-[11px] font-bold text-slate-500" dir="ltr">⏰ {h.record.meetingTime}</span>}
+                        </>
+                      ) : <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-3 py-1 rounded-md">غائب</span>}
                     </div>
                   </td>
                   <td className="px-8 py-5 text-center">
-                    {h.record.bibleReading ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                    {h.record.bibleReading ? 
+                      <span className="text-[10px] font-black text-blue-700 bg-blue-100 px-3 py-1 rounded-md">قرأ</span> : 
+                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
                   </td>
                   <td className="px-8 py-5 text-center">
-                    {h.record.confession ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                    <div className="flex flex-col items-center gap-1.5">
+                      {h.record.confession ? (
+                        <>
+                          <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-3 py-1 rounded-md">اعترف</span>
+                          {h.record.confessionDate && <span className="text-[9px] font-bold text-slate-500">{h.record.confessionDate.split('-').slice(1).join('/')}</span>}
+                        </>
+                      ) : <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
+                    </div>
                   </td>
                 </tr>
               ))}

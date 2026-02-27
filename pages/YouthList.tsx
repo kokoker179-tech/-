@@ -109,31 +109,49 @@ export const YouthList: React.FC = () => {
     // Calculate full history like in YouthProfile
     const allRecords = records.filter(r => r.youthId === youth.id);
     const joinDateStr = new Date(youth.addedAt).toISOString().split('T')[0];
-    const history = [];
+    const historyMap = new Map<string, any>();
+
+    // 1. Add all actual recorded dates for this youth
+    allRecords.forEach(record => {
+      if (record.date >= joinDateStr) {
+        const deadline = new Date(record.date);
+        deadline.setHours(23, 59, 59);
+        const isPast = new Date() > deadline;
+        const isPresent = record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession || record.communion || record.tonia;
+        
+        historyMap.set(record.date, {
+          date: record.date,
+          formatted: formatDateArabic(record.date),
+          status: isPresent ? 'present' : (isPast ? 'absent' : 'pending'),
+          record: record
+        });
+      }
+    });
+
+    // 2. Add last 20 Fridays
     let tempDate = new Date();
-    // Get last 20 Fridays
     const day = tempDate.getDay();
     const diff = tempDate.getDate() - day + (day === 5 ? 0 : (day < 5 ? -2 : 5));
     tempDate.setDate(diff);
 
     for (let i = 0; i < 20; i++) {
       const dateStr = tempDate.toISOString().split('T')[0];
-      if (dateStr >= joinDateStr) {
-        const record = allRecords.find(r => r.date === dateStr);
+      if (dateStr >= joinDateStr && !historyMap.has(dateStr)) {
         const deadline = new Date(dateStr);
         deadline.setHours(23, 59, 59);
         const isPast = new Date() > deadline;
-        const isPresent = record && (record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession);
         
-        history.push({
+        historyMap.set(dateStr, {
           date: dateStr,
           formatted: formatDateArabic(dateStr),
-          status: isPresent ? 'present' : (isPast ? 'absent' : 'pending'),
-          record: record || { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false }
+          status: isPast ? 'absent' : 'pending',
+          record: { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false, communion: false, tonia: false }
         });
       } 
       tempDate.setDate(tempDate.getDate() - 7);
     }
+
+    const history = Array.from(historyMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const yPoints = storageService.getMarathonActivityPoints().filter(p => p.youthId === youth.id);
     await generateDetailedYouthReportPDF(youth, history, yPoints);
