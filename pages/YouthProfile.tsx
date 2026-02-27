@@ -237,6 +237,7 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                 <th className="px-8 py-4 text-center">الحالة</th>
                 <th className="px-8 py-4 text-center">قداس / وقت</th>
                 <th className="px-8 py-4 text-center">تناول</th>
+                <th className="px-8 py-4 text-center">تونية</th>
                 <th className="px-8 py-4 text-center">اجتماع / وقت</th>
                 <th className="px-8 py-4 text-center">إنجيل</th>
                 <th className="px-8 py-4 text-center">اعتراف</th>
@@ -265,6 +266,9 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                   </td>
                   <td className="px-8 py-5 text-center">
                     {h.record.communion ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    {h.record.tonia ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
                   </td>
                   <td className="px-8 py-5 text-center">
                     <div className="flex flex-col items-center">

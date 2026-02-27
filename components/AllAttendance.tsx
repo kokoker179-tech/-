@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord } from '../types';
-import { Search, Calendar, X, Church, Users, Heart, BookOpen, ShieldCheck, Loader2 } from 'lucide-react';
+import { Search, Calendar, X, Church, Users, Heart, BookOpen, ShieldCheck, Loader2, Wine, Shirt } from 'lucide-react';
 import { formatDateArabic } from '../constants';
 
 export const AllAttendance: React.FC = () => {
@@ -119,6 +119,8 @@ export const AllAttendance: React.FC = () => {
                     <td className="px-6 py-5">
                       <div className="flex items-center justify-center gap-2">
                         <Indicator active={record.liturgy} icon={Church} colorClass="bg-amber-100 text-amber-600" />
+                        <Indicator active={record.communion} icon={Wine} colorClass="bg-rose-100 text-rose-600" />
+                        <Indicator active={record.tonia} icon={Shirt} colorClass="bg-indigo-100 text-indigo-600" />
                         <Indicator active={record.meeting} icon={Users} colorClass="bg-emerald-100 text-emerald-600" />
                         <Indicator active={record.visitation} icon={Heart} colorClass="bg-red-100 text-red-600" />
                         <Indicator active={record.bibleReading} icon={BookOpen} colorClass="bg-blue-100 text-blue-600" />

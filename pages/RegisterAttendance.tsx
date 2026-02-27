@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Loader2, ChevronDown, ChevronUp, Church, Users, Heart, 
   BookOpen, ShieldCheck, Clock, Calendar, X, RefreshCw, CheckCircle2, UserCheck,
-  Music, Trophy, Wine, Scroll, Brain, UtensilsCrossed, LogOut, Lock, Plus, Edit3, Trash2, Save, Filter, User, UserCircle, XCircle, Check
+  Music, Trophy, Wine, Scroll, Brain, UtensilsCrossed, LogOut, Lock, Plus, Edit3, Trash2, Save, Filter, User, UserCircle, XCircle, Check, Shirt
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord, Servant, Marathon, MarathonGroup, MarathonPointSystem } from '../types';
@@ -117,6 +117,10 @@ export const RegisterAttendance: React.FC = () => {
       if (field === 'confession' && value === true) newRecord.confessionDate = selectedDate;
     }
 
+    if ((field === 'liturgy' || field === 'communion') && value === false) {
+      newRecord.tonia = false;
+    }
+
     const allRecords = storageService.getAttendance();
     const idx = allRecords.findIndex(r => (isServant ? r.servantId === personId : r.youthId === personId) && r.date === selectedDate);
     
@@ -212,7 +216,7 @@ export const RegisterAttendance: React.FC = () => {
           {isExpanded && (
             <div className="p-8 bg-slate-50/50 border-t-2 border-slate-50 space-y-8 animate-in slide-in-from-top-4">
               {/* Status Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
                 <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
                 <StatusToggle 
                   active={record?.communion} 
@@ -223,6 +227,18 @@ export const RegisterAttendance: React.FC = () => {
                   onClick={() => {
                     if (record?.liturgy) {
                       updateRecordField(person.id, 'communion', !record?.communion, isServant);
+                    }
+                  }} 
+                />
+                <StatusToggle 
+                  active={record?.tonia} 
+                  icon={Shirt} 
+                  label="تونية" 
+                  color="indigo" 
+                  disabled={!record?.liturgy || !record?.communion}
+                  onClick={() => {
+                    if (record?.liturgy && record?.communion) {
+                      updateRecordField(person.id, 'tonia', !record?.tonia, isServant);
                     }
                   }} 
                 />

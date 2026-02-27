@@ -51,6 +51,7 @@ export interface AttendanceRecord {
   exodusCompetition?: boolean;
   memorizationPart?: boolean;
   fasting?: boolean;
+  tonia?: boolean;
 }
 
 export interface SystemConfig {

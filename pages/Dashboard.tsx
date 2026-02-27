@@ -8,7 +8,7 @@ import { WeeklyStats, Youth, AttendanceRecord } from '../types';
 import { 
   CalendarDays, Sparkles, Clock, AlertTriangle, TrendingUp, 
   ShieldCheck, BookOpen, Heart, Church, Users, Award, 
-  ChevronLeft, BarChart3, Wine
+  ChevronLeft, BarChart3, Wine, Shirt
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -36,6 +36,13 @@ interface ExtendedStats extends WeeklyStats {
   avgConfession: number;
   avgVisitation: number;
   avgCommunion: number;
+  avgTonia: number;
+  liturgyOnlyToday: number;
+  liturgyAndCommunionToday: number;
+  liturgyCommunionToniaToday: number;
+  liturgyOnlyList: Youth[];
+  liturgyAndCommunionList: Youth[];
+  liturgyCommunionToniaList: Youth[];
 }
 
 export const Dashboard: React.FC = () => {
@@ -45,7 +52,9 @@ export const Dashboard: React.FC = () => {
     bibleReaders: 0, confessedToday: 0, visitedToday: 0, communionToday: 0,
     attendanceTrend: [], totalYouth: 0, totalServants: 0, absentToday: 0,
     newYouthMonth: 0, retentionRate: 0, gradeDistribution: [], regionDistribution: [],
-    avgAttendance: 0, avgLiturgy: 0, avgMeeting: 0, avgBible: 0, avgConfession: 0, avgVisitation: 0, avgCommunion: 0
+    avgAttendance: 0, avgLiturgy: 0, avgMeeting: 0, avgBible: 0, avgConfession: 0, avgVisitation: 0, avgCommunion: 0, avgTonia: 0,
+    liturgyOnlyToday: 0, liturgyAndCommunionToday: 0, liturgyCommunionToniaToday: 0,
+    liturgyOnlyList: [], liturgyAndCommunionList: [], liturgyCommunionToniaList: []
   });
   const [confessionAlerts, setConfessionAlerts] = useState<Youth[]>([]);
   const [visitationAlerts, setVisitationAlerts] = useState<Youth[]>([]);
@@ -84,6 +93,7 @@ export const Dashboard: React.FC = () => {
     const avgConf = ltRecords.filter(r => r.confession).length / weeksCount;
     const avgVis = ltRecords.filter(r => r.visitation).length / weeksCount;
     const avgCom = ltRecords.filter(r => r.communion).length / weeksCount;
+    const avgTon = ltRecords.filter(r => r.tonia).length / weeksCount;
 
     // الشباب الجدد (آخر 30 يوم)
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -116,6 +126,12 @@ export const Dashboard: React.FC = () => {
       }).length
     }));
 
+    const liturgyOnlyRecs = todayRecords.filter(r => r.liturgy && !r.communion && !r.tonia);
+    const liturgyAndCommunionRecs = todayRecords.filter(r => r.liturgy && r.communion && !r.tonia);
+    const liturgyCommunionToniaRecs = todayRecords.filter(r => r.liturgy && r.communion && r.tonia);
+
+    const mapToYouth = (recs: AttendanceRecord[]) => recs.map(r => youthList.find(y => y.id === r.youthId)).filter(Boolean) as Youth[];
+
     setStats({
       totalToday: todayRecords.length,
       totalLiturgy: todayRecords.filter(r => r.liturgy).length,
@@ -139,19 +155,27 @@ export const Dashboard: React.FC = () => {
       avgBible: avgBib,
       avgConfession: avgConf,
       avgVisitation: avgVis,
-      avgCommunion: avgCom
+      avgCommunion: avgCom,
+      avgTonia: avgTon,
+      liturgyOnlyToday: liturgyOnlyRecs.length,
+      liturgyAndCommunionToday: liturgyAndCommunionRecs.length,
+      liturgyCommunionToniaToday: liturgyCommunionToniaRecs.length,
+      liturgyOnlyList: mapToYouth(liturgyOnlyRecs),
+      liturgyAndCommunionList: mapToYouth(liturgyAndCommunionRecs),
+      liturgyCommunionToniaList: mapToYouth(liturgyCommunionToniaRecs)
     });
 
-    // تنبيهات الاعتراف (الذين لم يعترفوا في آخر أسبوعين)
-    const lastTwoWeeks = getRecentFridays(2);
+    // تنبيهات الاعتراف (الذين لم يعترفوا في آخر شهر)
+    const lastFourWeeks = getRecentFridays(4);
     const cAlerts = youthList.filter(y => {
-      const hasConfessedRecently = allRecords.some(r => r.youthId === y.id && (r.confession || r.confessionDate) && lastTwoWeeks.includes(r.date));
+      const hasConfessedRecently = allRecords.some(r => r.youthId === y.id && (r.confession || r.confessionDate) && lastFourWeeks.includes(r.date));
       return !hasConfessedRecently;
     }).slice(0, 10);
     
     setConfessionAlerts(cAlerts);
 
     // تنبيهات الافتقاد (الذين لم يتم افتقادهم في آخر أسبوعين)
+    const lastTwoWeeks = getRecentFridays(2);
     const vAlerts = youthList.filter(y => {
       const wasVisited = allRecords.some(r => r.youthId === y.id && r.visitation && lastTwoWeeks.includes(r.date));
       return !wasVisited;
@@ -240,6 +264,73 @@ export const Dashboard: React.FC = () => {
         <StatCard icon={Award} label="نسبة الالتزام" value={`${Math.round(stats.retentionRate)}%`} sub="حضور مستمر" color="indigo" />
       </div>
 
+      {/* Liturgy Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-[2.5rem] border border-amber-100 dark:border-amber-800 flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200 shrink-0">
+              <Church size={28} />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-amber-700 dark:text-amber-400">{stats.liturgyOnlyToday}</p>
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-500">حضر قداس فقط</p>
+            </div>
+          </div>
+          {stats.liturgyOnlyList.length > 0 && (
+            <div className="mt-2 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
+              <p className="text-xs font-black text-amber-800 dark:text-amber-300 mb-3">الأسماء:</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.liturgyOnlyList.map(y => (
+                  <span key={y.id} className="text-sm bg-white/60 dark:bg-slate-900/50 text-amber-900 dark:text-amber-200 px-3 py-1.5 rounded-lg font-bold shadow-sm">{y.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="bg-rose-50 dark:bg-rose-900/20 p-6 rounded-[2.5rem] border border-rose-100 dark:border-rose-800 flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 shrink-0">
+              <Wine size={28} />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-rose-700 dark:text-rose-400">{stats.liturgyAndCommunionToday}</p>
+              <p className="text-xs font-bold text-rose-600 dark:text-rose-500">حضر قداس وتناول</p>
+            </div>
+          </div>
+          {stats.liturgyAndCommunionList.length > 0 && (
+            <div className="mt-2 pt-4 border-t border-rose-200/50 dark:border-rose-800/50">
+              <p className="text-xs font-black text-rose-800 dark:text-rose-300 mb-3">الأسماء:</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.liturgyAndCommunionList.map(y => (
+                  <span key={y.id} className="text-sm bg-white/60 dark:bg-slate-900/50 text-rose-900 dark:text-rose-200 px-3 py-1.5 rounded-lg font-bold shadow-sm">{y.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-[2.5rem] border border-indigo-100 dark:border-indigo-800 flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+              <Shirt size={28} />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-indigo-700 dark:text-indigo-400">{stats.liturgyCommunionToniaToday}</p>
+              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-500">حضر قداس وتناول وتونية</p>
+            </div>
+          </div>
+          {stats.liturgyCommunionToniaList.length > 0 && (
+            <div className="mt-2 pt-4 border-t border-indigo-200/50 dark:border-indigo-800/50">
+              <p className="text-xs font-black text-indigo-800 dark:text-indigo-300 mb-3">الأسماء:</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.liturgyCommunionToniaList.map(y => (
+                  <span key={y.id} className="text-sm bg-white/60 dark:bg-slate-900/50 text-indigo-900 dark:text-indigo-200 px-3 py-1.5 rounded-lg font-bold shadow-sm">{y.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Visual Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
@@ -276,6 +367,7 @@ export const Dashboard: React.FC = () => {
              <div className="flex flex-col gap-3">
                 <MiniIndicator label="حضور قداس" percent={(stats.totalLiturgy/stats.totalToday || 0)*100} avg={(stats.avgLiturgy/stats.avgAttendance || 0)*100} color="amber" />
                 <MiniIndicator label="التناول" percent={(stats.communionToday/stats.totalLiturgy || 0)*100} avg={(stats.avgCommunion/stats.avgLiturgy || 0)*100} color="rose" />
+                <MiniIndicator label="التونية" percent={(stats.liturgyCommunionToniaToday/stats.totalLiturgy || 0)*100} avg={(stats.avgTonia/stats.avgLiturgy || 0)*100} color="indigo" />
                 <MiniIndicator label="حضور اجتماع" percent={(stats.totalMeeting/stats.totalToday || 0)*100} avg={(stats.avgMeeting/stats.avgAttendance || 0)*100} color="emerald" />
                 <MiniIndicator label="قراءة إنجيل" percent={(stats.bibleReaders/stats.totalToday || 0)*100} avg={(stats.avgBible/stats.avgAttendance || 0)*100} color="indigo" />
                 <MiniIndicator label="اعتراف" percent={(stats.confessedToday/stats.totalToday || 0)*100} avg={(stats.avgConfession/stats.avgAttendance || 0)*100} color="purple" />
@@ -335,7 +427,7 @@ export const Dashboard: React.FC = () => {
         {/* Confession Alerts */}
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
           <div className="p-6 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
-            <h3 className="font-black text-purple-800 flex items-center gap-2"><ShieldCheck size={20} /> يحتاجون لمتابعة اعتراف (أسبوعين)</h3>
+            <h3 className="font-black text-purple-800 flex items-center gap-2"><ShieldCheck size={20} /> يحتاجون لمتابعة اعتراف (شهر)</h3>
             <span className="text-[10px] font-black bg-purple-600 text-white px-2 py-1 rounded-full">{confessionAlerts.length}</span>
           </div>
           <div className="divide-y divide-slate-50">

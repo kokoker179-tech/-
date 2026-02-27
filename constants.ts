@@ -264,6 +264,7 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
         ${h.record.liturgyTime ? `<br/><span style="font-size: 9px; color: #64748b;">${h.record.liturgyTime}</span>` : ''}
       </td>
       <td style="padding: 12px; text-align: center;">${h.record.communion ? '✅' : '❌'}</td>
+      <td style="padding: 12px; text-align: center;">${h.record.tonia ? '✅' : '❌'}</td>
       <td style="padding: 12px; text-align: center;">
         ${h.record.meeting ? '✅' : '❌'}
         ${h.record.meetingTime ? `<br/><span style="font-size: 9px; color: #64748b;">${h.record.meetingTime}</span>` : ''}
@@ -337,6 +338,7 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
             <th style="padding: 10px; text-align: center;">الحالة</th>
             <th style="padding: 10px; text-align: center;">قداس</th>
             <th style="padding: 10px; text-align: center;">تناول</th>
+            <th style="padding: 10px; text-align: center;">تونية</th>
             <th style="padding: 10px; text-align: center;">اجتماع</th>
             <th style="padding: 10px; text-align: center;">إنجيل</th>
             <th style="padding: 10px; text-align: center;">اعتراف</th>
