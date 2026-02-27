@@ -17,26 +17,41 @@ export const DEFAULT_POINT_SYSTEM = {
   fasting: 50
 };
 
+export const SYSTEM_START_DATE = '2026-02-27';
+
 export const getActiveFriday = () => {
   const d = new Date();
   const day = d.getDay();
-  const diffToFriday = (day + 2) % 7;
-  d.setDate(d.getDate() - diffToFriday);
+  
+  // Shift to the NEXT Friday if today is Saturday (6) through Thursday (4)
+  // If today is Friday (5), diff is 0
+  const diffToNextFriday = (5 - day + 7) % 7;
+  d.setDate(d.getDate() + diffToNextFriday);
   
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const date = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${date}`;
+  const result = `${year}-${month}-${date}`;
+  
+  // Enforce system start date
+  if (result < SYSTEM_START_DATE) return SYSTEM_START_DATE;
+  return result;
 };
 
-export const getRecentFridays = (count = 4) => {
+export const getRecentFridays = (count = 10) => {
   const fridays = [];
   let current = new Date(getActiveFriday());
+  
   for (let i = 0; i < count; i++) {
     const year = current.getFullYear();
     const month = String(current.getMonth() + 1).padStart(2, '0');
     const date = String(current.getDate()).padStart(2, '0');
-    fridays.push(`${year}-${month}-${date}`);
+    const dateStr = `${year}-${month}-${date}`;
+    
+    if (dateStr >= SYSTEM_START_DATE) {
+      fridays.push(dateStr);
+    }
+    
     current.setDate(current.getDate() - 7);
   }
   return fridays;

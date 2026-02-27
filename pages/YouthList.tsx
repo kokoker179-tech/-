@@ -11,7 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { generateFullReportPDF, generateDetailedYouthReportPDF, formatDateArabic } from '../constants';
+import { generateFullReportPDF, generateDetailedYouthReportPDF, formatDateArabic, SYSTEM_START_DATE } from '../constants';
 
 interface YouthWithStats extends Youth {
   stats: {
@@ -109,11 +109,12 @@ export const YouthList: React.FC = () => {
     // Calculate full history like in YouthProfile
     const allRecords = records.filter(r => r.youthId === youth.id);
     const joinDateStr = new Date(youth.addedAt).toISOString().split('T')[0];
+    const effectiveJoinDate = joinDateStr < SYSTEM_START_DATE ? SYSTEM_START_DATE : joinDateStr;
     const historyMap = new Map<string, any>();
 
     // 1. Add all actual recorded dates for this youth
     allRecords.forEach(record => {
-      if (record.date >= joinDateStr) {
+      if (record.date >= SYSTEM_START_DATE) {
         const deadline = new Date(record.date);
         deadline.setHours(23, 59, 59);
         const isPast = new Date() > deadline;
@@ -136,7 +137,7 @@ export const YouthList: React.FC = () => {
 
     for (let i = 0; i < 20; i++) {
       const dateStr = tempDate.toISOString().split('T')[0];
-      if (dateStr >= joinDateStr && !historyMap.has(dateStr)) {
+      if (dateStr >= effectiveJoinDate && !historyMap.has(dateStr)) {
         const deadline = new Date(dateStr);
         deadline.setHours(23, 59, 59);
         const isPast = new Date() > deadline;

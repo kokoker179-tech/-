@@ -12,7 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell
 } from 'recharts';
-import { isPastDeadline, formatDateArabic, getActiveFriday, generateDetailedYouthReportPDF } from '../constants';
+import { isPastDeadline, formatDateArabic, getActiveFriday, generateDetailedYouthReportPDF, SYSTEM_START_DATE } from '../constants';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -48,24 +48,27 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
       
       const allRecords = storageService.getAttendance().filter(r => r.youthId === found.id);
       const joinDateStr = found.addedAt ? new Date(found.addedAt).toISOString().split('T')[0] : '2020-01-01';
+      const effectiveJoinDate = joinDateStr < SYSTEM_START_DATE ? SYSTEM_START_DATE : joinDateStr;
       const historyMap = new Map<string, any>();
 
       // 1. Add all actual recorded dates for this youth
       allRecords.forEach(record => {
-        const isPresent = record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession || record.communion || record.tonia;
-        historyMap.set(record.date, {
-          date: record.date,
-          formatted: formatDateArabic(record.date),
-          status: isPresent ? 'present' : (isPastDeadline(record.date) ? 'absent' : 'pending'),
-          record: record
-        });
+        if (record.date >= SYSTEM_START_DATE) {
+          const isPresent = record.liturgy || record.meeting || record.visitation || record.bibleReading || record.confession || record.communion || record.tonia;
+          historyMap.set(record.date, {
+            date: record.date,
+            formatted: formatDateArabic(record.date),
+            status: isPresent ? 'present' : (isPastDeadline(record.date) ? 'absent' : 'pending'),
+            record: record
+          });
+        }
       });
 
       // 2. Add last 20 Fridays to ensure we show absences for regular meeting days
       let tempDate = new Date(getActiveFriday());
       for (let i = 0; i < 20; i++) {
         const dateStr = tempDate.toISOString().split('T')[0];
-        if (dateStr >= joinDateStr && !historyMap.has(dateStr)) {
+        if (dateStr >= effectiveJoinDate && !historyMap.has(dateStr)) {
           const isPast = isPastDeadline(dateStr);
           historyMap.set(dateStr, {
             date: dateStr,

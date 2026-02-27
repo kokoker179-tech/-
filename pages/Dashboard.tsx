@@ -197,11 +197,11 @@ export const Dashboard: React.FC = () => {
 
     // تنبيهات الغياب المتكرر (أسبوعين متتاليين)
     const lastTwoFridays = getRecentFridays(2);
-    const caAlerts = youthList.filter(y => {
+    const caAlerts = lastTwoFridays.length === 2 ? youthList.filter(y => {
       const wasPresentWeek1 = allRecords.some(r => r.youthId === y.id && r.date === lastTwoFridays[0] && (r.liturgy || r.meeting));
       const wasPresentWeek2 = allRecords.some(r => r.youthId === y.id && r.date === lastTwoFridays[1] && (r.liturgy || r.meeting));
       return !wasPresentWeek1 && !wasPresentWeek2;
-    }).slice(0, 10);
+    }).slice(0, 10) : [];
     setConsecutiveAbsenceAlerts(caAlerts);
   };
 
