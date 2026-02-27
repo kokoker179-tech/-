@@ -20,7 +20,7 @@ export const EditYouth: React.FC = () => {
     image: '',
     pdfDoc: '',
     address: '',
-    region: 'منطقة الكنيسة',
+    region: 'منطقة الكنيسة والتقسيم',
     fatherPhone: '',
     motherPhone: '',
     siblingsCount: 0
@@ -199,7 +199,7 @@ export const EditYouth: React.FC = () => {
                 value={formData.region}
                 onChange={e => setFormData({ ...formData, region: e.target.value })}
               >
-                <option value="منطقة ترعة عبد العال">منطقة ترعة عبد العال</option>
+                <option value="ترعة عبد العال">ترعة عبد العال</option>
                 <option value="منطقة الكنيسة والتقسيم">منطقة الكنيسة والتقسيم</option>
                 <option value="منطقة الملكة">منطقة الملكة</option>
                 <option value="منطقة أبو زيد">منطقة أبو زيد</option>
