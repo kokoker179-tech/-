@@ -12,7 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell
 } from 'recharts';
-import { isPastDeadline, formatDateArabic, getActiveFriday, generateDetailedYouthReportPDF, SYSTEM_START_DATE } from '../constants';
+import { isPastDeadline, formatDateArabic, getActiveFriday, generateDetailedYouthReportPDF, SYSTEM_START_DATE, getAllFridaysSinceStart } from '../constants';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -64,10 +64,9 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
         }
       });
 
-      // 2. Add last 20 Fridays to ensure we show absences for regular meeting days
-      let tempDate = new Date(getActiveFriday());
-      for (let i = 0; i < 20; i++) {
-        const dateStr = tempDate.toISOString().split('T')[0];
+      // 2. Add all Fridays since start to ensure we show absences for regular meeting days
+      const allFridays = getAllFridaysSinceStart();
+      allFridays.forEach(dateStr => {
         if (dateStr >= effectiveJoinDate && !historyMap.has(dateStr)) {
           const isPast = isPastDeadline(dateStr);
           historyMap.set(dateStr, {
@@ -76,9 +75,8 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
             status: isPast ? 'absent' : 'pending',
             record: { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false, communion: false, tonia: false }
           });
-        } 
-        tempDate.setDate(tempDate.getDate() - 7);
-      }
+        }
+      });
 
       // 3. Convert to array and sort descending by date
       const history = Array.from(historyMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -132,7 +130,14 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   };
 
   if (!youth) return null;
-  const attendanceRate = summary.totalFridays > 0 ? Math.round((summary.present / summary.totalFridays) * 100) : 0;
+  const calculateAttendanceRate = () => {
+    if (summary.totalFridays === 0) return 0;
+    const earnedPoints = summary.liturgy + summary.meeting + (summary.communion * 0.5) + (summary.confession * 0.5) + (summary.bible * 0.5);
+    const maxPoints = summary.totalFridays * 2;
+    return Math.min(100, Math.round((earnedPoints / maxPoints) * 100));
+  };
+  
+  const attendanceRate = calculateAttendanceRate();
   
   return (
     <div className="max-w-6xl mx-auto pb-20 font-['Cairo'] relative">

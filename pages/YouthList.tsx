@@ -11,7 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { generateFullReportPDF, generateDetailedYouthReportPDF, formatDateArabic, SYSTEM_START_DATE } from '../constants';
+import { generateFullReportPDF, generateDetailedYouthReportPDF, formatDateArabic, SYSTEM_START_DATE, getAllFridaysSinceStart } from '../constants';
 
 interface YouthWithStats extends Youth {
   stats: {
@@ -59,8 +59,18 @@ export const YouthList: React.FC = () => {
       const confession = yRecords.filter(r => r.confession).length;
       const visitation = yRecords.filter(r => r.visitation).length;
       
-      const weeksSinceAdded = Math.max(1, Math.ceil((Date.now() - y.addedAt) / (1000 * 60 * 60 * 24 * 7)));
+      const joinDateStr = new Date(y.addedAt).toISOString().split('T')[0];
+      const effectiveJoinDate = joinDateStr < SYSTEM_START_DATE ? SYSTEM_START_DATE : joinDateStr;
+      const effectiveJoinTime = new Date(effectiveJoinDate).getTime();
+      const weeksSinceAdded = Math.max(1, Math.ceil((Date.now() - effectiveJoinTime) / (1000 * 60 * 60 * 24 * 7)));
+      
       const totalPresent = yRecords.filter(r => r.liturgy || r.meeting).length;
+      const communion = yRecords.filter(r => r.communion).length;
+      
+      // Calculate points: Liturgy (1), Meeting (1), Communion (0.5), Confession (0.5), Bible (0.5)
+      const earnedPoints = liturgy + meeting + (communion * 0.5) + (confession * 0.5) + (bible * 0.5);
+      const maxPoints = weeksSinceAdded * 2; // Core expectation is Liturgy + Meeting
+      const percentage = Math.min(100, Math.round((earnedPoints / maxPoints) * 100));
       
       return {
         ...y,
@@ -72,7 +82,7 @@ export const YouthList: React.FC = () => {
           visitation,
           totalPresent,
           totalPossible: weeksSinceAdded,
-          percentage: Math.min(100, Math.round((totalPresent / weeksSinceAdded) * 100))
+          percentage
         }
       };
     });
@@ -129,14 +139,10 @@ export const YouthList: React.FC = () => {
       }
     });
 
-    // 2. Add last 20 Fridays
-    let tempDate = new Date();
-    const day = tempDate.getDay();
-    const diff = tempDate.getDate() - day + (day === 5 ? 0 : (day < 5 ? -2 : 5));
-    tempDate.setDate(diff);
+    // 2. Add all Fridays since start
+    const allFridays = getAllFridaysSinceStart();
 
-    for (let i = 0; i < 20; i++) {
-      const dateStr = tempDate.toISOString().split('T')[0];
+    allFridays.forEach(dateStr => {
       if (dateStr >= effectiveJoinDate && !historyMap.has(dateStr)) {
         const deadline = new Date(dateStr);
         deadline.setHours(23, 59, 59);
@@ -148,9 +154,8 @@ export const YouthList: React.FC = () => {
           status: isPast ? 'absent' : 'pending',
           record: { liturgy: false, meeting: false, visitation: false, bibleReading: false, confession: false, communion: false, tonia: false }
         });
-      } 
-      tempDate.setDate(tempDate.getDate() - 7);
-    }
+      }
+    });
 
     const history = Array.from(historyMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

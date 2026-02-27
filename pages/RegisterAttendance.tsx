@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord, Servant, Marathon, MarathonGroup, MarathonPointSystem } from '../types';
-import { getActiveFriday, formatDateArabic } from '../constants';
+import { getActiveFriday, formatDateArabic, getAllFridaysSinceStart } from '../constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import { Link } from 'react-router-dom';
@@ -71,6 +71,7 @@ export const RegisterAttendance: React.FC = () => {
   const [isAutoDate, setIsAutoDate] = useState(true);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const allFridays = getAllFridaysSinceStart();
   
   const loadData = () => {
     setYouth(storageService.getYouth());
@@ -407,12 +408,15 @@ export const RegisterAttendance: React.FC = () => {
             </button>
           </div>
           {!isAutoDate && (
-            <input 
-              type="date" 
+            <select 
               value={selectedDate} 
               onChange={(e) => setSelectedDate(e.target.value)} 
-              className="px-4 py-2 rounded-xl border-2 border-blue-50 bg-white font-black text-sm outline-none focus:border-blue-500 transition-all" 
-            />
+              className="px-4 py-2 rounded-xl border-2 border-blue-50 bg-white font-black text-sm outline-none focus:border-blue-500 transition-all cursor-pointer" 
+            >
+              {allFridays.map(d => (
+                <option key={d} value={d}>{formatDateArabic(d)}</option>
+              ))}
+            </select>
           )}
         </div>
       </div>

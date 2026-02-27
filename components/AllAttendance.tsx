@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord } from '../types';
 import { Search, Calendar, X, Church, Users, Heart, BookOpen, ShieldCheck, Loader2, Wine, Shirt } from 'lucide-react';
-import { formatDateArabic, getActiveFriday } from '../constants';
+import { formatDateArabic, getActiveFriday, getAllFridaysSinceStart } from '../constants';
 
 export const AllAttendance: React.FC = () => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -22,10 +22,9 @@ export const AllAttendance: React.FC = () => {
     allYouth.forEach(y => { map[y.id] = y; });
     setYouthMap(map);
 
-    const uniqueDates = Array.from(new Set(sortedRecords.map(r => r.date)));
     setFilterDate(prev => {
       if (prev === '' || prev === 'all') {
-        return uniqueDates.length > 0 ? uniqueDates[0] : getActiveFriday();
+        return getActiveFriday();
       }
       return prev;
     });
@@ -61,14 +60,19 @@ export const AllAttendance: React.FC = () => {
     return matchesSearch && matchesDate;
   });
 
-  const availableDates = Array.from(new Set([
-    getActiveFriday(),
-    ...records.map(r => r.date)
-  ])).sort().reverse();
+  const availableDates = getAllFridaysSinceStart();
 
-  const Indicator = ({ active, icon: Icon, colorClass }: any) => (
-    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${active ? colorClass : 'bg-slate-50 dark:bg-slate-800 text-slate-200 dark:text-slate-700'}`}>
-      <Icon size={16} />
+  const Indicator = ({ active, icon: Icon, colorClass, label, time }: any) => (
+    <div className={`flex flex-col items-center justify-center gap-1 ${active ? '' : 'opacity-40 grayscale-[0.5]'}`}>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? colorClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+        <Icon size={20} />
+      </div>
+      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">{label}</span>
+      {time && active && (
+        <span className="text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-md mt-0.5 shadow-sm border border-blue-200 dark:border-blue-800">
+          {time}
+        </span>
+      )}
     </div>
   );
 
@@ -127,15 +131,15 @@ export const AllAttendance: React.FC = () => {
                         <span className="text-sm">{formatDateArabic(record.date)}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center justify-center gap-2">
-                        <Indicator active={record.liturgy} icon={Church} colorClass="bg-amber-100 text-amber-600" />
-                        <Indicator active={record.communion} icon={Wine} colorClass="bg-rose-100 text-rose-600" />
-                        <Indicator active={record.tonia} icon={Shirt} colorClass="bg-indigo-100 text-indigo-600" />
-                        <Indicator active={record.meeting} icon={Users} colorClass="bg-emerald-100 text-emerald-600" />
-                        <Indicator active={record.visitation} icon={Heart} colorClass="bg-red-100 text-red-600" />
-                        <Indicator active={record.bibleReading} icon={BookOpen} colorClass="bg-blue-100 text-blue-600" />
-                        <Indicator active={record.confession} icon={ShieldCheck} colorClass="bg-purple-100 text-purple-600" />
+                    <td className="px-6 py-4">
+                      <div className="flex items-start justify-center gap-3">
+                        <Indicator active={record.liturgy} icon={Church} colorClass="bg-amber-100 text-amber-600" label="قداس" time={record.liturgyTime} />
+                        <Indicator active={record.communion} icon={Wine} colorClass="bg-rose-100 text-rose-600" label="تناول" />
+                        <Indicator active={record.tonia} icon={Shirt} colorClass="bg-indigo-100 text-indigo-600" label="تونية" />
+                        <Indicator active={record.meeting} icon={Users} colorClass="bg-emerald-100 text-emerald-600" label="اجتماع" time={record.meetingTime} />
+                        <Indicator active={record.visitation} icon={Heart} colorClass="bg-red-100 text-red-600" label="افتقاد" />
+                        <Indicator active={record.bibleReading} icon={BookOpen} colorClass="bg-blue-100 text-blue-600" label="إنجيل" />
+                        <Indicator active={record.confession} icon={ShieldCheck} colorClass="bg-purple-100 text-purple-600" label="اعتراف" />
                       </div>
                     </td>
                     <td className="px-8 py-5 text-center">

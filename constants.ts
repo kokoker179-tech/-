@@ -57,6 +57,31 @@ export const getRecentFridays = (count = 10) => {
   return fridays;
 };
 
+export const getAllFridaysSinceStart = () => {
+  const fridays = [];
+  let current = new Date(getActiveFriday());
+  
+  while (true) {
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const date = String(current.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${date}`;
+    
+    if (dateStr < SYSTEM_START_DATE) {
+      break;
+    }
+    
+    fridays.push(dateStr);
+    current.setDate(current.getDate() - 7);
+  }
+  
+  if (fridays.length === 0) {
+    fridays.push(SYSTEM_START_DATE);
+  }
+  
+  return fridays;
+};
+
 export const formatDateArabic = (dateStr: string) => {
   const [year, month, day] = dateStr.split('-').map(Number);
   const d = new Date(year, month - 1, day);

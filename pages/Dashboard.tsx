@@ -25,7 +25,7 @@ interface ExtendedStats extends WeeklyStats {
   totalServants: number;
   absentToday: number;
   newYouthMonth: number;
-  retentionRate: number;
+  weeklyCommitmentRate: number;
   gradeDistribution: { name: string; value: number }[];
   regionDistribution: { name: string; value: number }[];
   // Long-term averages
@@ -51,7 +51,7 @@ export const Dashboard: React.FC = () => {
     totalToday: 0, totalLiturgy: 0, totalMeeting: 0, earlyBirds: 0,
     bibleReaders: 0, confessedToday: 0, visitedToday: 0, communionToday: 0,
     attendanceTrend: [], totalYouth: 0, totalServants: 0, absentToday: 0,
-    newYouthMonth: 0, retentionRate: 0, gradeDistribution: [], regionDistribution: [],
+    newYouthMonth: 0, weeklyCommitmentRate: 0, gradeDistribution: [], regionDistribution: [],
     avgAttendance: 0, avgLiturgy: 0, avgMeeting: 0, avgBible: 0, avgConfession: 0, avgVisitation: 0, avgCommunion: 0, avgTonia: 0,
     liturgyOnlyToday: 0, liturgyAndCommunionToday: 0, liturgyCommunionToniaToday: 0,
     liturgyOnlyList: [], liturgyAndCommunionList: [], liturgyCommunionToniaList: []
@@ -132,6 +132,21 @@ export const Dashboard: React.FC = () => {
 
     const mapToYouth = (recs: AttendanceRecord[]) => recs.map(r => youthList.find(y => y.id === r.youthId)).filter(Boolean) as Youth[];
 
+    // حساب نسبة الالتزام للأسبوع المحدد بناءً على نظام النقاط
+    let totalEarnedPoints = 0;
+    const maxPoints = youthList.length * 2; // الأساس: قداس واجتماع لكل شاب
+    
+    todayRecords.forEach(r => {
+      const liturgy = r.liturgy ? 1 : 0;
+      const meeting = r.meeting ? 1 : 0;
+      const communion = r.communion ? 0.5 : 0;
+      const confession = r.confession ? 0.5 : 0;
+      const bible = r.bibleReading ? 0.5 : 0;
+      totalEarnedPoints += liturgy + meeting + communion + confession + bible;
+    });
+    
+    const weeklyCommitmentRate = maxPoints > 0 ? Math.min(100, Math.round((totalEarnedPoints / maxPoints) * 100)) : 0;
+
     setStats({
       totalToday: todayRecords.length,
       totalLiturgy: todayRecords.filter(r => r.liturgy).length,
@@ -146,7 +161,7 @@ export const Dashboard: React.FC = () => {
       totalServants: servantsList.length,
       absentToday: Math.max(0, youthList.length - todayRecords.length),
       newYouthMonth: newYouth,
-      retentionRate: youthList.length > 0 ? (regularYouth / youthList.length) * 100 : 0,
+      weeklyCommitmentRate,
       gradeDistribution: gDist,
       regionDistribution: rDist,
       avgAttendance: avgAtt,
@@ -261,7 +276,7 @@ export const Dashboard: React.FC = () => {
         <StatCard icon={Church} label="حضور القداس" value={stats.totalLiturgy} sub={`${Math.round((stats.totalLiturgy/stats.totalToday || 0)*100)}% من الحضور`} color="amber" avg={stats.avgLiturgy} />
         <StatCard icon={Wine} label="التناول" value={stats.communionToday} sub={`${Math.round((stats.communionToday/stats.totalLiturgy || 0)*100)}% من القداس`} color="rose" avg={stats.avgCommunion} />
         <StatCard icon={Users} label="حضور الاجتماع" value={stats.totalMeeting} sub={`${Math.round((stats.totalMeeting/stats.totalToday || 0)*100)}% من الحضور`} color="emerald" avg={stats.avgMeeting} />
-        <StatCard icon={Award} label="نسبة الالتزام" value={`${Math.round(stats.retentionRate)}%`} sub="حضور مستمر" color="indigo" />
+        <StatCard icon={Award} label="نسبة الالتزام" value={`${stats.weeklyCommitmentRate}%`} sub="لهذا الأسبوع" color="indigo" />
       </div>
 
       {/* Liturgy Breakdown */}
