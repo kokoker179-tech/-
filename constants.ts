@@ -20,29 +20,37 @@ export const DEFAULT_POINT_SYSTEM = {
 export const getActiveFriday = () => {
   const d = new Date();
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 5 ? 0 : (day < 5 ? -2 : 5));
-  const friday = new Date(d.setDate(diff));
-  return friday.toISOString().split('T')[0];
+  const diffToFriday = (day + 2) % 7;
+  d.setDate(d.getDate() - diffToFriday);
+  
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const date = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${date}`;
 };
 
 export const getRecentFridays = (count = 4) => {
   const fridays = [];
   let current = new Date(getActiveFriday());
   for (let i = 0; i < count; i++) {
-    fridays.push(current.toISOString().split('T')[0]);
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const date = String(current.getDate()).padStart(2, '0');
+    fridays.push(`${year}-${month}-${date}`);
     current.setDate(current.getDate() - 7);
   }
   return fridays;
 };
 
 export const formatDateArabic = (dateStr: string) => {
-  const d = new Date(dateStr);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
   return d.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 export const isPastDeadline = (dateStr: string) => {
-  const deadline = new Date(dateStr);
-  deadline.setHours(23, 59, 59);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const deadline = new Date(year, month - 1, day, 23, 59, 59);
   return new Date() > deadline;
 };
 

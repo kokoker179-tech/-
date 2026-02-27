@@ -3,23 +3,32 @@ import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord } from '../types';
 import { Search, Calendar, X, Church, Users, Heart, BookOpen, ShieldCheck, Loader2, Wine, Shirt } from 'lucide-react';
-import { formatDateArabic } from '../constants';
+import { formatDateArabic, getActiveFriday } from '../constants';
 
 export const AllAttendance: React.FC = () => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [youthMap, setYouthMap] = useState<Record<string, Youth>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const loadData = () => {
     const allRecords = storageService.getAttendance();
     const allYouth = storageService.getYouth();
-    setRecords(allRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    const sortedRecords = allRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setRecords(sortedRecords);
     
     const map: Record<string, Youth> = {};
     allYouth.forEach(y => { map[y.id] = y; });
     setYouthMap(map);
+
+    const uniqueDates = Array.from(new Set(sortedRecords.map(r => r.date)));
+    setFilterDate(prev => {
+      if (prev === '' || prev === 'all') {
+        return uniqueDates.length > 0 ? uniqueDates[0] : getActiveFriday();
+      }
+      return prev;
+    });
   };
 
   useEffect(() => {
@@ -47,12 +56,15 @@ export const AllAttendance: React.FC = () => {
     if (!youth) return false;
     
     const matchesSearch = youth.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMonth = filterMonth === 'all' || record.date.startsWith(filterMonth);
+    const matchesDate = record.date === filterDate;
     
-    return matchesSearch && matchesMonth;
+    return matchesSearch && matchesDate;
   });
 
-  const months = Array.from(new Set(records.map(r => r.date.substring(0, 7)))).sort().reverse();
+  const availableDates = Array.from(new Set([
+    getActiveFriday(),
+    ...records.map(r => r.date)
+  ])).sort().reverse();
 
   const Indicator = ({ active, icon: Icon, colorClass }: any) => (
     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${active ? colorClass : 'bg-slate-50 dark:bg-slate-800 text-slate-200 dark:text-slate-700'}`}>
@@ -77,13 +89,12 @@ export const AllAttendance: React.FC = () => {
           />
         </div>
         <select 
-          value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
           className="px-8 py-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white outline-none shadow-sm font-black text-lg cursor-pointer"
         >
-          <option value="all">كل الشهور</option>
-          {months.map(m => (
-            <option key={m} value={m}>{m}</option>
+          {availableDates.map((d: string) => (
+            <option key={d} value={d}>{formatDateArabic(d)}</option>
           ))}
         </select>
       </div>

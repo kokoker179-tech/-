@@ -100,7 +100,18 @@ export const RegisterAttendance: React.FC = () => {
       if (field === 'confession' && value === true) {
         newRecord.confessionDate = selectedDate;
       }
+      if (field === 'liturgy' && value === true && !existingRecord.liturgyTime) {
+        const now = new Date();
+        newRecord.liturgyTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      }
+      if (field === 'meeting' && value === true && !existingRecord.meetingTime) {
+        const now = new Date();
+        newRecord.meetingTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      }
     } else {
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
       newRecord = {
         id: `${personId}-${selectedDate}`,
         youthId: isServant ? undefined : personId,
@@ -112,9 +123,13 @@ export const RegisterAttendance: React.FC = () => {
         bibleReading: field === 'bibleReading' ? value : false,
         confession: field === 'confession' ? value : false,
         communion: field === 'communion' ? value : false,
+        tonia: field === 'tonia' ? value : false,
         [field]: value
       };
+      
       if (field === 'confession' && value === true) newRecord.confessionDate = selectedDate;
+      if (field === 'liturgy' && value === true) newRecord.liturgyTime = currentTime;
+      if (field === 'meeting' && value === true) newRecord.meetingTime = currentTime;
     }
 
     if ((field === 'liturgy' || field === 'communion') && value === false) {

@@ -251,75 +251,75 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                <th className="px-8 py-4">التاريخ / اليوم</th>
-                <th className="px-8 py-4 text-center">الحالة</th>
-                <th className="px-8 py-4 text-center">قداس / وقت</th>
-                <th className="px-8 py-4 text-center">تناول</th>
-                <th className="px-8 py-4 text-center">تونية</th>
-                <th className="px-8 py-4 text-center">اجتماع / وقت</th>
-                <th className="px-8 py-4 text-center">إنجيل</th>
-                <th className="px-8 py-4 text-center">اعتراف</th>
+              <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest border-b-2 border-slate-200 dark:border-slate-700">
+                <th className="px-8 py-5">التاريخ / اليوم</th>
+                <th className="px-8 py-5 text-center">الحالة</th>
+                <th className="px-8 py-5 text-center">قداس / وقت</th>
+                <th className="px-8 py-5 text-center">تناول</th>
+                <th className="px-8 py-5 text-center">تونية</th>
+                <th className="px-8 py-5 text-center">اجتماع / وقت</th>
+                <th className="px-8 py-5 text-center">إنجيل</th>
+                <th className="px-8 py-5 text-center">اعتراف</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800">
               {weeklyHistory.map((h, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-8 py-5">
-                    <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{h.formatted}</p>
+                  <td className="px-8 py-6">
+                    <p className="font-black text-slate-800 dark:text-slate-100 text-base">{h.formatted}</p>
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${ 
-                      h.status === 'present' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 
-                      h.status === 'absent' ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800' : 
-                      'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                  <td className="px-8 py-6 text-center">
+                    <span className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${ 
+                      h.status === 'present' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 
+                      h.status === 'absent' ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800' : 
+                      'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                     }`}>
                       {h.status === 'present' ? 'حضور' : h.status === 'absent' ? 'غياب' : 'قادم'}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                  <td className="px-8 py-6 text-center">
+                    <div className="flex flex-col items-center gap-2">
                       {h.record.liturgy ? (
                         <>
-                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">حضر</span>
-                          {h.record.liturgyTime && <span className="text-[11px] font-bold text-slate-500" dir="ltr">⏰ {h.record.liturgyTime}</span>}
+                          <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-4 py-1.5 rounded-lg shadow-sm">حضر</span>
+                          {h.record.liturgyTime && <span className="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1 rounded-md border border-slate-100" dir="ltr">⏰ {h.record.liturgyTime}</span>}
                         </>
-                      ) : <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-3 py-1 rounded-md">غائب</span>}
+                      ) : <span className="text-xs font-black text-rose-800 bg-rose-100 px-4 py-1.5 rounded-lg shadow-sm">غائب</span>}
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-center">
+                  <td className="px-8 py-6 text-center">
                     {h.record.communion ? 
-                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">تناول</span> : 
-                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
+                      <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-4 py-1.5 rounded-lg shadow-sm">تناول</span> : 
+                      <span className="text-xs font-black text-slate-500 bg-slate-100 px-4 py-1.5 rounded-lg">لا</span>}
                   </td>
-                  <td className="px-8 py-5 text-center">
+                  <td className="px-8 py-6 text-center">
                     {h.record.tonia ? 
-                      <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-3 py-1 rounded-md">تونية</span> : 
-                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
+                      <span className="text-xs font-black text-indigo-800 bg-indigo-100 px-4 py-1.5 rounded-lg shadow-sm">تونية</span> : 
+                      <span className="text-xs font-black text-slate-500 bg-slate-100 px-4 py-1.5 rounded-lg">لا</span>}
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                  <td className="px-8 py-6 text-center">
+                    <div className="flex flex-col items-center gap-2">
                       {h.record.meeting ? (
                         <>
-                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">حضر</span>
-                          {h.record.meetingTime && <span className="text-[11px] font-bold text-slate-500" dir="ltr">⏰ {h.record.meetingTime}</span>}
+                          <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-4 py-1.5 rounded-lg shadow-sm">حضر</span>
+                          {h.record.meetingTime && <span className="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1 rounded-md border border-slate-100" dir="ltr">⏰ {h.record.meetingTime}</span>}
                         </>
-                      ) : <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-3 py-1 rounded-md">غائب</span>}
+                      ) : <span className="text-xs font-black text-rose-800 bg-rose-100 px-4 py-1.5 rounded-lg shadow-sm">غائب</span>}
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-center">
+                  <td className="px-8 py-6 text-center">
                     {h.record.bibleReading ? 
-                      <span className="text-[10px] font-black text-blue-700 bg-blue-100 px-3 py-1 rounded-md">قرأ</span> : 
-                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
+                      <span className="text-xs font-black text-blue-800 bg-blue-100 px-4 py-1.5 rounded-lg shadow-sm">قرأ</span> : 
+                      <span className="text-xs font-black text-slate-500 bg-slate-100 px-4 py-1.5 rounded-lg">لا</span>}
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                  <td className="px-8 py-6 text-center">
+                    <div className="flex flex-col items-center gap-2">
                       {h.record.confession ? (
                         <>
-                          <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-3 py-1 rounded-md">اعترف</span>
-                          {h.record.confessionDate && <span className="text-[9px] font-bold text-slate-500">{h.record.confessionDate.split('-').slice(1).join('/')}</span>}
+                          <span className="text-xs font-black text-purple-800 bg-purple-100 px-4 py-1.5 rounded-lg shadow-sm">اعترف</span>
+                          {h.record.confessionDate && <span className="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">{h.record.confessionDate.split('-').slice(1).join('/')}</span>}
                         </>
-                      ) : <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-md">لا</span>}
+                      ) : <span className="text-xs font-black text-slate-500 bg-slate-100 px-4 py-1.5 rounded-lg">لا</span>}
                     </div>
                   </td>
                 </tr>
