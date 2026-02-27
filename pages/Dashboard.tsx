@@ -117,11 +117,15 @@ export const Dashboard: React.FC = () => {
     }));
 
     // توزيع المناطق للحضور اليوم
-    const regions = ["ترعة عبد العال 1", "ترعة عبد العال 2", "منطقة الكنيسة", "التقسيم", "منطقة الملكة", "منطقة أبو زيد"];
+    const regions = ["ترعة عبد العال 1", "ترعة عبد العال 2", "منطقة الكنيسة والتقسيم", "منطقة الملكة", "منطقة أبو زيد"];
     const rDist = regions.map(r => ({
       name: r,
       value: todayRecords.filter(rec => {
         const y = youthList.find(youth => youth.id === rec.youthId);
+        // Handle backward compatibility for old records
+        if (r === "منطقة الكنيسة والتقسيم") {
+          return y?.region === "منطقة الكنيسة والتقسيم" || y?.region === "منطقة الكنيسة" || y?.region === "التقسيم";
+        }
         return y?.region === r;
       }).length
     }));

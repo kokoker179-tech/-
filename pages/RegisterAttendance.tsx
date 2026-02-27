@@ -210,8 +210,17 @@ export const RegisterAttendance: React.FC = () => {
         <div key={person.id} className={`bg-white rounded-[2.5rem] shadow-sm border-2 transition-all overflow-hidden ${isExpanded ? 'border-blue-600 ring-8 ring-blue-50' : (isRegistered ? 'border-emerald-100 shadow-emerald-50' : 'border-slate-50')}`}>
           <div className="p-6 md:p-8 flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : person.id)}>
             <div className="flex items-center gap-6">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all ${isRegistered ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}`}>
-                {isRegistered ? <CheckCircle2 size={24} /> : person.name[0]}
+              <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all overflow-hidden ${isRegistered ? 'ring-4 ring-emerald-500 bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
+                {(person as Youth).image ? (
+                  <img src={(person as Youth).image} alt={person.name} className="w-full h-full object-cover" />
+                ) : (
+                  person.name[0]
+                )}
+                {isRegistered && (
+                  <div className="absolute inset-0 bg-emerald-500/30 flex items-center justify-center backdrop-blur-[1px]">
+                    <CheckCircle2 size={28} className="text-white drop-shadow-md" />
+                  </div>
+                )}
               </div>
               <div>
                 <h4 className="font-black text-xl text-slate-800 flex items-center gap-2">

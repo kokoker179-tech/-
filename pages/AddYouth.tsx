@@ -36,6 +36,28 @@ export const AddYouth: React.FC = () => {
   });
   const [success, setSuccess] = useState(false);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 300;
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setFormData(prev => ({ ...prev, image: canvas.toDataURL('image/jpeg', 0.7) }));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return;
@@ -79,6 +101,43 @@ export const AddYouth: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="flex flex-col items-center mb-4">
+            <div 
+              className="relative w-32 h-32 rounded-[2.5rem] bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {formData.image ? (
+                <>
+                  <img src={formData.image} alt="معاينة" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="text-white" size={24} />
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-slate-400 group-hover:text-blue-500 transition-colors">
+                  <Camera size={32} className="mx-auto mb-2" />
+                  <span className="text-xs font-black">إضافة صورة</span>
+                </div>
+              )}
+            </div>
+            {formData.image && (
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, image: '' })); }}
+                className="mt-3 text-rose-500 text-xs font-black flex items-center gap-1 hover:bg-rose-50 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <X size={14} /> إزالة الصورة
+              </button>
+            )}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+          </div>
+
           <div className="space-y-2">
               <label className="block text-sm font-black text-slate-700">الاسم بالكامل</label>
               <input type="text" required className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
@@ -122,8 +181,7 @@ export const AddYouth: React.FC = () => {
               <select className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold" value={formData.region} onChange={e => setFormData({ ...formData, region: e.target.value })}>
                 <option value="ترعة عبد العال 1">ترعة عبد العال 1</option>
                 <option value="ترعة عبد العال 2">ترعة عبد العال 2</option>
-                <option value="منطقة الكنيسة">منطقة الكنيسة</option>
-                <option value="التقسيم">التقسيم</option>
+                <option value="منطقة الكنيسة والتقسيم">منطقة الكنيسة والتقسيم</option>
                 <option value="منطقة الملكة">منطقة الملكة</option>
                 <option value="منطقة أبو زيد">منطقة أبو زيد</option>
               </select>

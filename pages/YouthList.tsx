@@ -223,9 +223,13 @@ export const YouthList: React.FC = () => {
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
-                        {y.name[0]}
-                      </div>
+                      {y.image ? (
+                        <img src={y.image} alt={y.name} className="w-16 h-16 rounded-2xl object-cover shadow-lg rotate-3 group-hover:rotate-0 transition-transform border-2 border-white dark:border-slate-800" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
+                          {y.name[0]}
+                        </div>
+                      )}
                       {(() => {
                         const winnerMarathon = marathons.find(m => !m.active && m.winnerGroupId);
                         if (winnerMarathon) {

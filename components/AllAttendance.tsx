@@ -122,8 +122,19 @@ export const AllAttendance: React.FC = () => {
                 return (
                   <tr key={record.id} className={`hover:bg-blue-50/30 transition-colors ${deletingThis ? 'opacity-50' : ''}`}>
                     <td className="px-8 py-5">
-                      <p className="font-black text-slate-800 dark:text-slate-200 text-lg">{youth.name}</p>
-                      <p className="text-xs text-slate-400 font-black">{youth.grade}</p>
+                      <div className="flex items-center gap-4">
+                        {youth.image ? (
+                          <img src={youth.image} alt={youth.name} className="w-12 h-12 rounded-xl object-cover shadow-sm border border-slate-200 dark:border-slate-700" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                            {youth.name[0]}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-black text-slate-800 dark:text-slate-200 text-lg">{youth.name}</p>
+                          <p className="text-xs text-slate-400 font-black">{youth.grade}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold">
