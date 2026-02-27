@@ -4,8 +4,8 @@ import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord, Marathon, MarathonGroup } from '../types';
 import { 
   X, Search, UserCircle, Edit3, MessageCircle, Check, Copy, Hash, 
-  Share2, FileText, Download, Loader2, Trash2, Church, Users, 
-  BookOpen, ShieldCheck, Heart, TrendingUp, Filter, SortAsc,
+  Share2, FileText, Download, Loader2, Trash2, Church, Users, Phone, 
+  BookOpen, ShieldCheck, Heart, TrendingUp, Filter, SortAsc, Target,
   Award, Trophy
 } from 'lucide-react';
 import { Link } from "react-router-dom";
@@ -68,9 +68,42 @@ export const YouthList: React.FC = () => {
       const communion = yRecords.filter(r => r.communion).length;
       
       // Calculate points: Liturgy (1), Meeting (1), Communion (0.5), Confession (0.5), Bible (0.5)
-      const earnedPoints = liturgy + meeting + (communion * 0.5) + (confession * 0.5) + (bible * 0.5);
-      const maxPoints = weeksSinceAdded * 2; // Core expectation is Liturgy + Meeting
-      const percentage = Math.min(100, Math.round((earnedPoints / maxPoints) * 100));
+      // To make it dynamic (updates with improvement/decline), we use a weighted average:
+      // 60% weight for the last 4 weeks, 40% weight for the historical average.
+      
+      const fourWeeksAgo = Date.now() - (4 * 7 * 24 * 60 * 60 * 1000);
+      const recentRecords = yRecords.filter(r => new Date(r.date).getTime() >= fourWeeksAgo);
+      const historicalRecords = yRecords.filter(r => new Date(r.date).getTime() < fourWeeksAgo);
+      
+      const calcPoints = (recs: typeof yRecords) => {
+        const l = recs.filter(r => r.liturgy).length;
+        const m = recs.filter(r => r.meeting).length;
+        const c = recs.filter(r => r.communion).length;
+        const cf = recs.filter(r => r.confession).length;
+        const b = recs.filter(r => r.bibleReading).length;
+        return l + m + (c * 0.5) + (cf * 0.5) + (b * 0.5);
+      };
+
+      const recentPoints = calcPoints(recentRecords);
+      const historicalPoints = calcPoints(historicalRecords);
+      
+      const recentWeeks = Math.min(weeksSinceAdded, 4);
+      const historicalWeeks = Math.max(0, weeksSinceAdded - recentWeeks);
+      
+      const recentMax = recentWeeks * 2;
+      const historicalMax = historicalWeeks * 2;
+      
+      let percentage = 0;
+      if (weeksSinceAdded <= 4) {
+        percentage = recentMax > 0 ? Math.round((recentPoints / recentMax) * 100) : 0;
+      } else {
+        const recentRate = recentMax > 0 ? (recentPoints / recentMax) : 0;
+        const historicalRate = historicalMax > 0 ? (historicalPoints / historicalMax) : 0;
+        // 60% weight for recent, 40% for historical
+        percentage = Math.round((recentRate * 0.6 + historicalRate * 0.4) * 100);
+      }
+      
+      percentage = Math.min(100, percentage);
       
       return {
         ...y,
@@ -247,11 +280,21 @@ export const YouthList: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-black text-xl text-slate-800 dark:text-slate-100 leading-tight mb-1">{y.name}</h4>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{y.grade}</span>
                         <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-full flex items-center gap-1">
                           <Hash size={10} /> {y.code}
                         </span>
+                        {y.phone && (
+                          <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1">
+                            <Phone size={10} /> {y.phone}
+                          </span>
+                        )}
+                        {y.region && (
+                          <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-3 py-1 rounded-full flex items-center gap-1">
+                            <Target size={10} /> {y.region}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

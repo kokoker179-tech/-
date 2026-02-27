@@ -117,7 +117,7 @@ export const Dashboard: React.FC = () => {
     }));
 
     // توزيع المناطق للحضور اليوم
-    const regions = ["ترعة عبد العال 1", "ترعة عبد العال 2", "منطقة الكنيسة والتقسيم", "منطقة الملكة", "منطقة أبو زيد"];
+    const regions = ["منطقة ترعة عبد العال", "منطقة الكنيسة والتقسيم", "منطقة الملكة", "منطقة أبو زيد"];
     const rDist = regions.map(r => ({
       name: r,
       value: todayRecords.filter(rec => {
@@ -125,6 +125,9 @@ export const Dashboard: React.FC = () => {
         // Handle backward compatibility for old records
         if (r === "منطقة الكنيسة والتقسيم") {
           return y?.region === "منطقة الكنيسة والتقسيم" || y?.region === "منطقة الكنيسة" || y?.region === "التقسيم";
+        }
+        if (r === "منطقة ترعة عبد العال") {
+          return y?.region === "منطقة ترعة عبد العال" || y?.region === "ترعة عبد العال 1" || y?.region === "ترعة عبد العال 2";
         }
         return y?.region === r;
       }).length

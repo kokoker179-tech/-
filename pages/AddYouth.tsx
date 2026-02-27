@@ -179,8 +179,7 @@ export const AddYouth: React.FC = () => {
             <div className="space-y-2">
               <label className="block text-sm font-black text-slate-700">المنطقة</label>
               <select className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold" value={formData.region} onChange={e => setFormData({ ...formData, region: e.target.value })}>
-                <option value="ترعة عبد العال 1">ترعة عبد العال 1</option>
-                <option value="ترعة عبد العال 2">ترعة عبد العال 2</option>
+                <option value="منطقة ترعة عبد العال">منطقة ترعة عبد العال</option>
                 <option value="منطقة الكنيسة والتقسيم">منطقة الكنيسة والتقسيم</option>
                 <option value="منطقة الملكة">منطقة الملكة</option>
                 <option value="منطقة أبو زيد">منطقة أبو زيد</option>

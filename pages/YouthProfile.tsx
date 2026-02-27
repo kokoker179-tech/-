@@ -5,7 +5,7 @@ import { storageService } from '../services/storageService';
 import { Youth, AttendanceRecord, Marathon, MarathonGroup } from '../types';
 import { 
   ArrowRight, Church, Users, BookOpen, ShieldCheck, 
-  Calendar, Share2, Award, LogOut, Hash, Check, 
+  Calendar, Share2, Award, LogOut, Hash, Check, Phone, 
   TrendingUp, Star, Trophy, Target, FileDown, Loader2, X, Wine, Clock
 } from 'lucide-react';
 import { 
@@ -131,10 +131,39 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
 
   if (!youth) return null;
   const calculateAttendanceRate = () => {
-    if (summary.totalFridays === 0) return 0;
-    const earnedPoints = summary.liturgy + summary.meeting + (summary.communion * 0.5) + (summary.confession * 0.5) + (summary.bible * 0.5);
-    const maxPoints = summary.totalFridays * 2;
-    return Math.min(100, Math.round((earnedPoints / maxPoints) * 100));
+    if (weeklyHistory.length === 0) return 0;
+    
+    const calcPointsForHistory = (hList: typeof weeklyHistory) => {
+      let pts = 0;
+      hList.forEach(h => {
+        const r = h.record;
+        if (r) {
+          pts += (r.liturgy ? 1 : 0) + (r.meeting ? 1 : 0) + (r.communion ? 0.5 : 0) + (r.confession ? 0.5 : 0) + (r.bibleReading ? 0.5 : 0);
+        }
+      });
+      return pts;
+    };
+
+    const recentHistory = weeklyHistory.slice(0, 4);
+    const historicalHistory = weeklyHistory.slice(4);
+    
+    const recentPoints = calcPointsForHistory(recentHistory);
+    const historicalPoints = calcPointsForHistory(historicalHistory);
+    
+    const recentMax = recentHistory.length * 2;
+    const historicalMax = historicalHistory.length * 2;
+    
+    let percentage = 0;
+    if (weeklyHistory.length <= 4) {
+      percentage = recentMax > 0 ? Math.round((recentPoints / recentMax) * 100) : 0;
+    } else {
+      const recentRate = recentMax > 0 ? (recentPoints / recentMax) : 0;
+      const historicalRate = historicalMax > 0 ? (historicalPoints / historicalMax) : 0;
+      // 60% weight for recent, 40% for historical
+      percentage = Math.round((recentRate * 0.6 + historicalRate * 0.4) * 100);
+    }
+    
+    return Math.min(100, percentage);
   };
   
   const attendanceRate = calculateAttendanceRate();
@@ -205,6 +234,11 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
               {youth.region && (
                 <span className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-5 py-2 rounded-full text-sm font-black border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
                   <Target size={16} /> المنطقة: {youth.region}
+                </span>
+              )}
+              {youth.phone && (
+                <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-5 py-2 rounded-full text-sm font-black border border-indigo-200 dark:border-indigo-800 flex items-center gap-2">
+                  <Phone size={16} /> الهاتف: {youth.phone}
                 </span>
               )}
               {marathonPoints.length > 0 && (

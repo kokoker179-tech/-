@@ -281,6 +281,8 @@ export const RegisterAttendance: React.FC = () => {
                 <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                   <h5 className="font-black text-amber-800 mb-4 flex items-center gap-2"><Trophy size={18}/> نقاط الماراثون الإضافية</h5>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
+                    <StatusToggle active={record?.communion} icon={Wine} label="تناول" color="rose" onClick={() => updateRecordField(person.id, 'communion', !record?.communion, isServant)} />
                     <StatusToggle active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha, isServant)} />
                     <StatusToggle active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting, isServant)} />
                     <StatusToggle active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart, isServant)} />

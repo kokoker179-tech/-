@@ -6,7 +6,7 @@ import {
   Trophy, Users, Plus, Edit3, Trash2, Check, X, 
   Download, Calendar, Award, UserPlus, ChevronRight, 
   ChevronLeft, Star, TrendingUp, FileText, Settings,
-  Save, AlertCircle, Info, Filter,
+  Save, AlertCircle, Info, Filter, BookOpen,
   Church, ShieldCheck, Music, Wine, UtensilsCrossed, Brain, Scroll
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -318,31 +318,111 @@ export const MarathonPage: React.FC = () => {
                           <p className="text-xs text-slate-400 font-black uppercase">النقاط</p>
                           <p className="font-black text-blue-600">{total}</p>
                         </div>
-                        <button 
-                          onClick={() => {
-                            const activity = window.prompt('اختر النشاط:\n(weeklyCompetition, memorizationPart, exodusCompetition, fasting, communion, tasbeha)');
-                            if (activity && Object.keys(activeMarathon!.pointSystem).includes(activity)) {
-                              const points = activeMarathon!.pointSystem[activity as keyof MarathonPointSystem];
-                              const reason = window.prompt(`إضافة نقاط لـ ${y.name}\nالنشاط: ${activity}\nالنقاط: ${points}\nأدخل السبب:`, 'مشاركة متميزة');
-                              if (reason !== null) {
-                                storageService.addMarathonActivityPoints({
-                                  marathonId: activeMarathon!.id,
-                                  youthId: y.id,
-                                  weekDate: selectedWeek,
-                                  activity: activity as keyof MarathonPointSystem,
-                                  points,
-                                  reason: reason || 'مشاركة متميزة',
-                                  timestamp: Date.now()
-                                });
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => {
+                              const activity = 'liturgy';
+                              const points = activeMarathon!.pointSystem[activity];
+                              storageService.addMarathonActivityPoints({
+                                marathonId: activeMarathon!.id,
+                                youthId: y.id,
+                                weekDate: selectedWeek,
+                                activity,
+                                points,
+                                reason: 'حضور القداس الإلهي',
+                                timestamp: Date.now()
+                              });
+                            }}
+                            className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'liturgy') ? 'bg-amber-600 text-white shadow-lg' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}
+                            title="قداس"
+                          >
+                            <Church size={16} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const activity = 'communion';
+                              const points = activeMarathon!.pointSystem[activity];
+                              storageService.addMarathonActivityPoints({
+                                marathonId: activeMarathon!.id,
+                                youthId: y.id,
+                                weekDate: selectedWeek,
+                                activity,
+                                points,
+                                reason: 'التناول من الأسرار المقدسة',
+                                timestamp: Date.now()
+                              });
+                            }}
+                            className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'communion') ? 'bg-rose-600 text-white shadow-lg' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
+                            title="تناول"
+                          >
+                            <Wine size={16} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const activity = 'confession';
+                              const points = activeMarathon!.pointSystem[activity];
+                              storageService.addMarathonActivityPoints({
+                                marathonId: activeMarathon!.id,
+                                youthId: y.id,
+                                weekDate: selectedWeek,
+                                activity,
+                                points,
+                                reason: 'ممارسة سر الاعتراف',
+                                timestamp: Date.now()
+                              });
+                            }}
+                            className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'confession') ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                            title="اعتراف"
+                          >
+                            <ShieldCheck size={16} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const activity = 'bibleReading';
+                              // @ts-ignore - bibleReading might be in pointSystem or use a default
+                              const points = activeMarathon!.pointSystem['bibleReading'] || 10;
+                              storageService.addMarathonActivityPoints({
+                                marathonId: activeMarathon!.id,
+                                youthId: y.id,
+                                weekDate: selectedWeek,
+                                activity: 'bibleReading' as any,
+                                points,
+                                reason: 'قراءة الكتاب المقدس',
+                                timestamp: Date.now()
+                              });
+                            }}
+                            className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'bibleReading') ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                            title="إنجيل"
+                          >
+                            <BookOpen size={16} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const activity = window.prompt('اختر النشاط:\n(weeklyCompetition, memorizationPart, exodusCompetition, fasting, tasbeha)');
+                              if (activity && Object.keys(activeMarathon!.pointSystem).includes(activity)) {
+                                const points = activeMarathon!.pointSystem[activity as keyof MarathonPointSystem];
+                                const reason = window.prompt(`إضافة نقاط لـ ${y.name}\nالنشاط: ${activity}\nالنقاط: ${points}\nأدخل السبب:`, 'مشاركة متميزة');
+                                if (reason !== null) {
+                                  storageService.addMarathonActivityPoints({
+                                    marathonId: activeMarathon!.id,
+                                    youthId: y.id,
+                                    weekDate: selectedWeek,
+                                    activity: activity as keyof MarathonPointSystem,
+                                    points,
+                                    reason: reason || 'مشاركة متميزة',
+                                    timestamp: Date.now()
+                                  });
+                                }
+                              } else if (activity) {
+                                alert('نشاط غير صالح');
                               }
-                            } else if (activity) {
-                              alert('نشاط غير صالح');
-                            }
-                          }}
-                          className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
-                        >
-                          <Plus size={16} />
-                        </button>
+                            }}
+                            className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all"
+                            title="المزيد"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
