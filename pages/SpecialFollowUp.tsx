@@ -96,11 +96,6 @@ export const SpecialFollowUp: React.FC = () => {
   }, []);
 
   const updateAttendance = async (servantId: string, field: 'liturgy' | 'meeting' | 'preparation' | 'notes', value: any) => {
-    if (selectedDate > new Date().toISOString().split('T')[0]) {
-      alert('لا يمكن تسجيل حضور لتاريخ مستقبلي');
-      return;
-    }
-
     const all = storageService.getServantAttendance();
     const existingIdx = all.findIndex(r => r.servantId === servantId && r.date === selectedDate);
     
@@ -396,10 +391,6 @@ export const SpecialFollowUp: React.FC = () => {
             <button onClick={() => changeWeek('prev')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-amber-600 transition-all">
               <ChevronRight size={20} />
             </button>
-            <div className="px-4 font-black text-slate-700 text-sm">
-              {formatDateArabic(selectedDate)}
-              {isFutureDate && <span className="mr-2 text-rose-500 text-[10px]">(مستقبلي)</span>}
-            </div>
             <button onClick={() => changeWeek('next')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-amber-600 transition-all">
               <ChevronLeft size={20} />
             </button>
@@ -462,9 +453,8 @@ export const SpecialFollowUp: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <button 
-                        disabled={isFutureDate}
                         onClick={() => updateAttendance(servant.id, 'liturgy', !isLiturgy)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isLiturgy ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'} ${isFutureDate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isLiturgy ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}`}
                       >
                         {isLiturgy ? <Check size={20} strokeWidth={3} /> : <X size={20} strokeWidth={3} />}
                       </button>
@@ -473,9 +463,8 @@ export const SpecialFollowUp: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <button 
-                        disabled={isFutureDate}
                         onClick={() => updateAttendance(servant.id, 'meeting', !isMeeting)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isMeeting ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'} ${isFutureDate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isMeeting ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}`}
                       >
                         {isMeeting ? <Check size={20} strokeWidth={3} /> : <X size={20} strokeWidth={3} />}
                       </button>
@@ -484,9 +473,8 @@ export const SpecialFollowUp: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <button 
-                        disabled={isFutureDate}
                         onClick={() => updateAttendance(servant.id, 'preparation', !isPreparation)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isPreparation ? 'bg-blue-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'} ${isFutureDate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isPreparation ? 'bg-blue-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}`}
                       >
                         {isPreparation ? <Check size={20} strokeWidth={3} /> : <X size={20} strokeWidth={3} />}
                       </button>
@@ -495,12 +483,11 @@ export const SpecialFollowUp: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex flex-col items-center gap-1">
                       <button 
-                        disabled={isFutureDate}
                         onClick={() => {
                           setActiveServantId(servant.id);
                           setIsAddingVisitation(true);
                         }}
-                        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs font-black ${servantVisits.length > 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-400'} ${isFutureDate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs font-black ${servantVisits.length > 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-400'}`}
                       >
                         <Heart size={14} className={servantVisits.length > 0 ? 'fill-amber-500' : ''} />
                         {servantVisits.length > 0 ? `افتقد ${servantVisits.length}` : 'تسجيل افتقاد'}
@@ -523,7 +510,6 @@ export const SpecialFollowUp: React.FC = () => {
                   <td className="px-6 py-4">
                     <input 
                       type="text"
-                      disabled={isFutureDate}
                       value={record?.notes || ''}
                       onChange={(e) => updateAttendance(servant.id, 'notes', e.target.value)}
                       placeholder="ملاحظات..."
@@ -609,22 +595,63 @@ export const SpecialFollowUp: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">تاريخ الافتقاد</label>
-                    <div className="relative">
-                      <input 
-                        type="date"
-                        className="w-full px-5 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold"
-                        value={visitationForm.date}
-                        onChange={e => setVisitationForm({...visitationForm, date: e.target.value})}
-                      />
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">تاريخ الافتقاد</label>
+                      <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
                         {new Date(visitationForm.date).toLocaleDateString('ar-EG', { weekday: 'long' })}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <select 
+                        className="flex-1 px-2 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold text-center appearance-none bg-white"
+                        value={visitationForm.date.split('-')[2]}
+                        onChange={e => {
+                          const parts = visitationForm.date.split('-');
+                          const newDate = `2026-${parts[1]}-${e.target.value.padStart(2, '0')}`;
+                          setVisitationForm({...visitationForm, date: newDate});
+                        }}
+                      >
+                        <option value="" disabled>اليوم</option>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                          const parts = visitationForm.date.split('-');
+                          const month = parseInt(parts[1], 10);
+                          const daysInMonth = new Date(2026, month, 0).getDate();
+                          if (day > daysInMonth) return null;
+                          return (
+                            <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>
+                          );
+                        })}
+                      </select>
+                      <span className="text-slate-300 font-black">/</span>
+                      <select 
+                        className="flex-1 px-2 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold text-center appearance-none bg-white"
+                        value={visitationForm.date.split('-')[1]}
+                        onChange={e => {
+                          const parts = visitationForm.date.split('-');
+                          const newMonth = e.target.value.padStart(2, '0');
+                          let newDay = parts[2];
+                          const daysInNewMonth = new Date(2026, parseInt(newMonth, 10), 0).getDate();
+                          if (parseInt(newDay, 10) > daysInNewMonth) {
+                            newDay = daysInNewMonth.toString().padStart(2, '0');
+                          }
+                          const newDate = `2026-${newMonth}-${newDay}`;
+                          setVisitationForm({...visitationForm, date: newDate});
+                        }}
+                      >
+                        <option value="" disabled>الشهر</option>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                          <option key={month} value={month.toString().padStart(2, '0')}>{month}</option>
+                        ))}
+                      </select>
+                      <span className="text-slate-300 font-black">/</span>
+                      <div className="flex-1 px-2 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 font-bold text-center cursor-not-allowed">
+                        2026
                       </div>
                     </div>
                   </div>
-                  <div>
+                  <div className="flex flex-col justify-end">
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">ملاحظات</label>
                     <input 
                       placeholder="مثال: مكالمة تليفونية"
