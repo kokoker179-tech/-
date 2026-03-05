@@ -453,21 +453,26 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {visitations.map((v, idx) => {
                   const s = servants.find(servant => servant.id === v.servantId);
+                  const dayName = new Date(v.date).toLocaleDateString('ar-EG', { weekday: 'long' });
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-8 py-5">
                         <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{formatDateArabic(v.date)}</p>
+                        <p className="text-[10px] text-rose-600 font-bold">{dayName}</p>
                       </td>
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-xs">
                             {s?.name[0] || '?'}
                           </div>
-                          <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{s?.name || 'خادم غير معروف'}</p>
+                          <div>
+                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{s?.name || 'خادم غير معروف'}</p>
+                            <p className="text-[10px] text-slate-400 font-black">قام بالافتقاد</p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-8 py-5">
-                        <p className="text-xs font-bold text-slate-500">{v.notes}</p>
+                        <p className="text-xs font-bold text-slate-500">{v.notes || 'لا توجد ملاحظات'}</p>
                       </td>
                     </tr>
                   );

@@ -23,15 +23,22 @@ export const getActiveFriday = () => {
   const d = new Date();
   const day = d.getDay();
   
-  // If today is Friday (5), diff is 0.
-  // If today is Saturday (6), diff is -1.
-  // If today is Sunday (0), diff is -2.
-  // ...
-  // If today is Thursday (4), diff is -6.
+  // Logic: 
+  // If it's Saturday (6) to Thursday (4), point to the UPCOMING Friday.
+  // If it's Friday (5), point to TODAY.
+  // This ensures that as soon as Friday is over (Saturday 12:00 AM), we move to the next week.
   
-  const diffToLastFriday = (day >= 5) ? (5 - day) : (5 - day - 7);
+  let diff;
+  if (day === 5) {
+    diff = 0;
+  } else if (day === 6) {
+    diff = 6; // Next Friday is 6 days away
+  } else {
+    diff = 5 - day; // Sunday(0)->5, Monday(1)->4, etc.
+  }
+  
   const targetDate = new Date(d);
-  targetDate.setDate(d.getDate() + diffToLastFriday);
+  targetDate.setDate(d.getDate() + diff);
   
   const year = targetDate.getFullYear();
   const month = String(targetDate.getMonth() + 1).padStart(2, '0');

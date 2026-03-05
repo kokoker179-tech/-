@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { Servant, AttendanceRecord, Youth, Visitation, ServantAttendance } from '../types';
-import { formatDateArabic, getActiveFriday, generateServantsPDF } from '../constants';
+import { formatDateArabic, getActiveFriday, generateServantsPDF, getAllFridaysSinceStart } from '../constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,7 +19,7 @@ export const SpecialFollowUp: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(getActiveFriday());
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'dashboard' | 'attendance' | 'servants'>('dashboard');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'attendance' | 'servants' | 'records'>('dashboard');
   
   // Visitation State
   const [isAddingVisitation, setIsAddingVisitation] = useState(false);
@@ -84,8 +84,9 @@ export const SpecialFollowUp: React.FC = () => {
     const total = servants.length;
     const presentLiturgy = currentAttendance.filter(r => r.liturgy).length;
     const presentMeeting = currentAttendance.filter(r => r.meeting).length;
+    const presentPreparation = currentAttendance.filter(r => r.preparation).length;
     const totalVisits = currentVisitations.length;
-    return { total, presentLiturgy, presentMeeting, totalVisits };
+    return { total, presentLiturgy, presentMeeting, presentPreparation, totalVisits };
   }, [servants, currentAttendance, currentVisitations]);
 
   useEffect(() => {
@@ -94,7 +95,7 @@ export const SpecialFollowUp: React.FC = () => {
     return () => window.removeEventListener('storage_updated', loadData);
   }, []);
 
-  const updateAttendance = async (servantId: string, field: 'liturgy' | 'meeting' | 'preparation', value: boolean) => {
+  const updateAttendance = async (servantId: string, field: 'liturgy' | 'meeting' | 'preparation' | 'notes', value: any) => {
     if (selectedDate > new Date().toISOString().split('T')[0]) {
       alert('لا يمكن تسجيل حضور لتاريخ مستقبلي');
       return;
@@ -113,6 +114,7 @@ export const SpecialFollowUp: React.FC = () => {
         liturgy: field === 'liturgy' ? value : false,
         meeting: field === 'meeting' ? value : false,
         preparation: field === 'preparation' ? value : false,
+        notes: field === 'notes' ? value : '',
         timestamp: Date.now()
       });
     }
@@ -174,24 +176,43 @@ export const SpecialFollowUp: React.FC = () => {
     setIsAdding(false);
   };
 
-  const renderDashboard = () => (
-    <div className="space-y-8">
-      <div className="flex justify-center mb-6">
-        <div className="flex items-center gap-3 bg-white p-3 rounded-[2rem] border border-slate-100 shadow-lg">
-          <button onClick={() => changeWeek('prev')} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-amber-600 transition-all">
-            <ChevronRight size={24} />
-          </button>
-          <div className="px-8 text-center">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">إحصائيات أسبوع</p>
-            <p className="font-black text-slate-800 text-lg">{formatDateArabic(selectedDate)}</p>
+  const renderDashboard = () => {
+    const allFridays = getAllFridaysSinceStart();
+    
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-6">
+          <div className="flex items-center gap-3 bg-white p-3 rounded-[2rem] border border-slate-100 shadow-lg">
+            <button onClick={() => changeWeek('prev')} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-amber-600 transition-all">
+              <ChevronRight size={24} />
+            </button>
+            <div className="px-8 text-center min-w-[200px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">إحصائيات أسبوع</p>
+              <select 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="font-black text-slate-800 text-lg bg-transparent border-none outline-none text-center cursor-pointer hover:text-amber-600 transition-colors"
+              >
+                {allFridays.map(date => (
+                  <option key={date} value={date}>
+                    {formatDateArabic(date)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button onClick={() => changeWeek('next')} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-amber-600 transition-all">
+              <ChevronLeft size={24} />
+            </button>
           </div>
-          <button onClick={() => changeWeek('next')} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-amber-600 transition-all">
-            <ChevronLeft size={24} />
+          <button 
+            onClick={() => setViewMode('attendance')}
+            className="px-8 py-4 bg-amber-500 text-white rounded-[2rem] font-black shadow-lg shadow-amber-200 hover:bg-amber-600 transition-all flex items-center gap-2"
+          >
+            <CheckCircle2 size={20} /> تسجيل حضور الأسبوع
           </button>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
             <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
@@ -201,7 +222,7 @@ export const SpecialFollowUp: React.FC = () => {
           </div>
           <div>
             <h4 className="text-4xl font-black text-slate-800">{stats.total}</h4>
-            <p className="text-slate-400 text-xs font-bold mt-1">خادم مسجل في النظام</p>
+            <p className="text-slate-400 text-xs font-bold mt-1">خادم مسجل</p>
           </div>
         </div>
 
@@ -214,7 +235,33 @@ export const SpecialFollowUp: React.FC = () => {
           </div>
           <div>
             <h4 className="text-4xl font-black text-emerald-600">{stats.presentLiturgy}</h4>
-            <p className="text-slate-400 text-xs font-bold mt-1">خادم حضر قداس اليوم</p>
+            <p className="text-slate-400 text-xs font-bold mt-1">خادم حضر القداس</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+              <Users size={24} />
+            </div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">حضور الاجتماع</span>
+          </div>
+          <div>
+            <h4 className="text-4xl font-black text-blue-600">{stats.presentMeeting}</h4>
+            <p className="text-slate-400 text-xs font-bold mt-1">خادم حضر الاجتماع</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+              <Clock size={24} />
+            </div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">حضور التحضير</span>
+          </div>
+          <div>
+            <h4 className="text-4xl font-black text-indigo-600">{stats.presentPreparation}</h4>
+            <p className="text-slate-400 text-xs font-bold mt-1">خادم حضر التحضير</p>
           </div>
         </div>
 
@@ -227,21 +274,21 @@ export const SpecialFollowUp: React.FC = () => {
           </div>
           <div>
             <h4 className="text-4xl font-black text-amber-600">{stats.totalVisits}</h4>
-            <p className="text-slate-400 text-xs font-bold mt-1">عملية افتقاد تمت اليوم</p>
+            <p className="text-slate-400 text-xs font-bold mt-1">عملية افتقاد</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
             <h3 className="font-black text-slate-800 flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-emerald-500" /> خدام حضروا القداس
+              <CheckCircle2 size={20} className="text-emerald-500" /> حضور القداس
             </h3>
           </div>
           <div className="p-6 space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
             {currentAttendance.filter(r => r.liturgy).length === 0 ? (
-              <p className="text-center py-8 text-slate-400 font-bold">لم يتم تسجيل حضور قداس بعد</p>
+              <p className="text-center py-8 text-slate-400 font-bold">لا يوجد تسجيل</p>
             ) : (
               currentAttendance.filter(r => r.liturgy).map(r => {
                 const s = servants.find(item => item.id === r.servantId);
@@ -261,12 +308,12 @@ export const SpecialFollowUp: React.FC = () => {
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
             <h3 className="font-black text-slate-800 flex items-center gap-2">
-              <Users size={20} className="text-blue-500" /> خدام حضروا الاجتماع
+              <Users size={20} className="text-blue-500" /> حضور الاجتماع
             </h3>
           </div>
           <div className="p-6 space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
             {currentAttendance.filter(r => r.meeting).length === 0 ? (
-              <p className="text-center py-8 text-slate-400 font-bold">لم يتم تسجيل حضور اجتماع بعد</p>
+              <p className="text-center py-8 text-slate-400 font-bold">لا يوجد تسجيل</p>
             ) : (
               currentAttendance.filter(r => r.meeting).map(r => {
                 const s = servants.find(item => item.id === r.servantId);
@@ -282,9 +329,35 @@ export const SpecialFollowUp: React.FC = () => {
             )}
           </div>
         </div>
+
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+            <h3 className="font-black text-slate-800 flex items-center gap-2">
+              <Clock size={20} className="text-indigo-500" /> حضور التحضير
+            </h3>
+          </div>
+          <div className="p-6 space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+            {currentAttendance.filter(r => r.preparation).length === 0 ? (
+              <p className="text-center py-8 text-slate-400 font-bold">لا يوجد تسجيل</p>
+            ) : (
+              currentAttendance.filter(r => r.preparation).map(r => {
+                const s = servants.find(item => item.id === r.servantId);
+                return (
+                  <div key={r.id} className="flex items-center gap-3 p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <div className="w-8 h-8 bg-indigo-500 text-white rounded-lg flex items-center justify-center">
+                      <User size={16} />
+                    </div>
+                    <span className="font-bold text-indigo-800">{s?.name}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
+};
 
   const changeWeek = (direction: 'prev' | 'next') => {
     const d = new Date(selectedDate);
@@ -297,26 +370,42 @@ export const SpecialFollowUp: React.FC = () => {
 
   const isFutureDate = selectedDate > new Date().toISOString().split('T')[0];
 
-  const renderAttendance = () => (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
-        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-          <Calendar size={20} className="text-amber-600" /> السجل الكامل (حضور وافتقاد)
-        </h3>
-        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-          <button onClick={() => changeWeek('prev')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-amber-600 transition-all">
-            <ChevronRight size={20} />
-          </button>
-          <div className="px-4 font-black text-slate-700 text-sm">
-            {formatDateArabic(selectedDate)}
-            {isFutureDate && <span className="mr-2 text-rose-500 text-[10px]">(مستقبلي)</span>}
+  const renderAttendance = () => {
+    const allFridays = getAllFridaysSinceStart();
+    
+    return (
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+              <Calendar size={20} className="text-amber-600" /> تسجيل الحضور والافتقاد
+            </h3>
+            <select 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-amber-500/20"
+            >
+              {allFridays.map(date => (
+                <option key={date} value={date}>
+                  {formatDateArabic(date)}
+                </option>
+              ))}
+            </select>
           </div>
-          <button onClick={() => changeWeek('next')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-amber-600 transition-all">
-            <ChevronLeft size={20} />
-          </button>
+          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+            <button onClick={() => changeWeek('prev')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-amber-600 transition-all">
+              <ChevronRight size={20} />
+            </button>
+            <div className="px-4 font-black text-slate-700 text-sm">
+              {formatDateArabic(selectedDate)}
+              {isFutureDate && <span className="mr-2 text-rose-500 text-[10px]">(مستقبلي)</span>}
+            </div>
+            <button onClick={() => changeWeek('next')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-amber-600 transition-all">
+              <ChevronLeft size={20} />
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
         <table className="w-full text-right">
           <thead>
             <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
@@ -325,6 +414,7 @@ export const SpecialFollowUp: React.FC = () => {
               <th className="px-6 py-4 text-center">اجتماع</th>
               <th className="px-6 py-4 text-center">تحضير</th>
               <th className="px-6 py-4 text-center">الافتقاد</th>
+              <th className="px-6 py-4 text-center">ملاحظات</th>
               <th className="px-6 py-4 text-center">الحالة</th>
             </tr>
           </thead>
@@ -351,9 +441,18 @@ export const SpecialFollowUp: React.FC = () => {
                 <tr key={servant.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
-                        <User size={20} />
-                      </div>
+                      {servant.image ? (
+                        <img 
+                          src={servant.image} 
+                          alt={servant.name} 
+                          className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
+                          <User size={20} />
+                        </div>
+                      )}
                       <div>
                         <p className="font-bold text-slate-800 text-sm">{servant.name}</p>
                         <p className="text-[9px] text-slate-400 font-black uppercase">{servant.role}</p>
@@ -420,6 +519,16 @@ export const SpecialFollowUp: React.FC = () => {
                         </div>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <input 
+                      type="text"
+                      disabled={isFutureDate}
+                      value={record?.notes || ''}
+                      onChange={(e) => updateAttendance(servant.id, 'notes', e.target.value)}
+                      placeholder="ملاحظات..."
+                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-amber-500/20"
+                    />
                   </td>
                   <td className="px-6 py-4 text-center">
                     {isLiturgy && isMeeting ? (
@@ -503,12 +612,17 @@ export const SpecialFollowUp: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">تاريخ الافتقاد</label>
-                    <input 
-                      type="date"
-                      className="w-full px-5 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold"
-                      value={visitationForm.date}
-                      onChange={e => setVisitationForm({...visitationForm, date: e.target.value})}
-                    />
+                    <div className="relative">
+                      <input 
+                        type="date"
+                        className="w-full px-5 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold"
+                        value={visitationForm.date}
+                        onChange={e => setVisitationForm({...visitationForm, date: e.target.value})}
+                      />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                        {new Date(visitationForm.date).toLocaleDateString('ar-EG', { weekday: 'long' })}
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">ملاحظات</label>
@@ -546,6 +660,7 @@ export const SpecialFollowUp: React.FC = () => {
       </AnimatePresence>
     </div>
   );
+};
 
   const renderServants = () => (
     <div className="space-y-8">
@@ -720,6 +835,117 @@ export const SpecialFollowUp: React.FC = () => {
     </div>
   );
 
+  const renderRecords = () => {
+    const allFridays = getAllFridaysSinceStart();
+    
+    return (
+      <div className="space-y-8">
+        <div className="flex justify-between items-center">
+          <h3 className="text-2xl font-black text-slate-800">سجلات الحضور السابقة</h3>
+          <select 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-amber-500/20"
+          >
+            {allFridays.map(date => (
+              <option key={date} value={date}>
+                {formatDateArabic(date)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+            <h4 className="font-black text-slate-800 flex items-center gap-2">
+              <Calendar size={20} className="text-amber-600" /> سجل يوم {formatDateArabic(selectedDate)}
+            </h4>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right">
+              <thead>
+                <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                  <th className="px-6 py-4">الخادم</th>
+                  <th className="px-6 py-4 text-center">قداس</th>
+                  <th className="px-6 py-4 text-center">اجتماع</th>
+                  <th className="px-6 py-4 text-center">تحضير</th>
+                  <th className="px-6 py-4 text-center">الافتقاد</th>
+                  <th className="px-6 py-4 text-center">ملاحظات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {servants.map(servant => {
+                  const record = currentAttendance.find(r => r.servantId === servant.id);
+                  const isLiturgy = record?.liturgy || false;
+                  const isMeeting = record?.meeting || false;
+                  const isPreparation = record?.preparation || false;
+                  
+                  const weekStart = new Date(selectedDate);
+                  weekStart.setDate(weekStart.getDate() - 6);
+                  const weekStartStr = weekStart.toISOString().split('T')[0];
+                  
+                  const servantVisits = visitations.filter(v => 
+                    v.servantId === servant.id && 
+                    v.date >= weekStartStr && 
+                    v.date <= selectedDate
+                  );
+
+                  return (
+                    <tr key={servant.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {servant.image ? (
+                            <img 
+                              src={servant.image} 
+                              alt={servant.name} 
+                              className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
+                              <User size={20} />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{servant.name}</p>
+                            <p className="text-[9px] text-slate-400 font-black uppercase">{servant.role}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${isLiturgy ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                          {isLiturgy ? <Check size={16} /> : <X size={16} />}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${isMeeting ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                          {isMeeting ? <Check size={16} /> : <X size={16} />}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${isPreparation ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                          {isPreparation ? <Check size={16} /> : <X size={16} />}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${servantVisits.length > 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}>
+                          {servantVisits.length > 0 ? `${servantVisits.length} افتقاد` : 'لا يوجد'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <p className="text-xs text-slate-500 font-bold">{record?.notes || '—'}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const filteredServants = servants.filter(s => s.name.includes(searchTerm));
 
   return (
@@ -735,7 +961,6 @@ export const SpecialFollowUp: React.FC = () => {
             </div>
             <h2 className="text-5xl font-black mb-4">نظام متابعة الخدام</h2>
             <div className="flex items-center gap-6 text-amber-100 font-bold">
-              <div className="flex items-center gap-2"><Calendar size={18} /> {formatDateArabic(selectedDate)}</div>
               <div className="flex items-center gap-2"><Users size={18} /> {servants.length} خادم</div>
             </div>
           </div>
@@ -754,12 +979,13 @@ export const SpecialFollowUp: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-4 mb-10">
         <TabButton active={viewMode === 'dashboard'} onClick={() => setViewMode('dashboard')} icon={TrendingUp} label="لوحة التحكم" />
-        <TabButton active={viewMode === 'attendance'} onClick={() => setViewMode('attendance')} icon={Calendar} label="السجل الكامل" />
+        <TabButton active={viewMode === 'attendance'} onClick={() => setViewMode('attendance')} icon={CheckCircle2} label="تسجيل الحضور" />
+        <TabButton active={viewMode === 'records'} onClick={() => setViewMode('records')} icon={Calendar} label="سجل الحضور" />
         <TabButton active={viewMode === 'servants'} onClick={() => setViewMode('servants')} icon={Users} label="قائمة الخدام" />
       </div>
 
       {/* Search Bar for non-dashboard views */}
-      {viewMode !== 'dashboard' && (
+      {viewMode !== 'dashboard' && viewMode !== 'records' && (
         <div className="relative mb-8">
           <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input 
@@ -783,6 +1009,7 @@ export const SpecialFollowUp: React.FC = () => {
         >
           {viewMode === 'dashboard' && renderDashboard()}
           {viewMode === 'attendance' && renderAttendance()}
+          {viewMode === 'records' && renderRecords()}
           {viewMode === 'servants' && renderServants()}
         </motion.div>
       </AnimatePresence>

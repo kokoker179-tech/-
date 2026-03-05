@@ -63,6 +63,7 @@ export interface ServantAttendance {
   liturgy: boolean;
   meeting: boolean;
   preparation: boolean;
+  notes?: string;
   timestamp: number;
 }
 
