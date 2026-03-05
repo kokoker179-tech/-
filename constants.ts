@@ -236,62 +236,89 @@ export const generateMarathonFinalReport = async (marathon: any, group: any, all
 };
 
 export const generateFullReportPDF = async (youthList: any[], records: any[]) => {
-  const reportContainer = document.createElement('div');
-  reportContainer.style.width = '1000px';
-  reportContainer.style.padding = '40px';
-  reportContainer.dir = 'rtl';
-  reportContainer.style.fontFamily = "'Cairo', sans-serif";
-  reportContainer.style.backgroundColor = '#ffffff';
+  const pdf = new jsPDF('l', 'mm', 'a4');
+  const CHUNK_SIZE = 22; // Increased to fill the page better in landscape
+  
+  for (let i = 0; i < youthList.length; i += CHUNK_SIZE) {
+    const chunk = youthList.slice(i, i + CHUNK_SIZE);
+    const reportContainer = document.createElement('div');
+    reportContainer.style.width = '1120px'; // Better fit for A4 Landscape
+    reportContainer.style.padding = '30px';
+    reportContainer.dir = 'rtl';
+    reportContainer.style.fontFamily = "'Cairo', sans-serif";
+    reportContainer.style.backgroundColor = '#ffffff';
 
-  const rows = youthList.map((y, idx) => `
-    <tr style="border-bottom: 1px solid #e2e8f0;">
-      <td style="padding: 12px; text-align: center;">${idx + 1}</td>
-      <td style="padding: 12px; font-weight: bold;">${y.name}</td>
-      <td style="padding: 12px; text-align: center;">${y.code}</td>
-      <td style="padding: 12px; text-align: center;">${y.phone || '—'}</td>
-      <td style="padding: 12px;">${y.address || '—'}</td>
-      <td style="padding: 12px; text-align: center;">${y.grade}</td>
-    </tr>
-  `).join('');
+    const rows = chunk.map((y, idx) => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 10px; text-align: center; font-size: 14px;">${i + idx + 1}</td>
+        <td style="padding: 10px; font-weight: bold; font-size: 14px;">${y.name}</td>
+        <td style="padding: 10px; text-align: center; font-size: 14px;">${y.code}</td>
+        <td style="padding: 10px; text-align: center; font-size: 14px;">${y.phone || '—'}</td>
+        <td style="padding: 10px; font-size: 13px;">${y.address || '—'}</td>
+        <td style="padding: 10px; text-align: center; font-size: 14px;">${y.grade}</td>
+        <td style="padding: 10px; text-align: center; font-size: 14px; font-weight: 900; color: ${y.stats.percentage > 70 ? '#166534' : y.stats.percentage > 40 ? '#92400e' : '#991b1b'}">${y.stats.percentage}%</td>
+      </tr>
+    `).join('');
 
-  reportContainer.innerHTML = `
-    <div style="border: 4px solid #2563eb; padding: 20px; border-radius: 20px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2563eb; margin: 0;">دليل بيانات الشباب الكامل</h1>
-        <p style="font-weight: bold; color: #64748b;">كنيسة الملاك روفائيل - اجتماع ثانوي بنين</p>
-        <p style="color: #94a3b8; font-size: 12px;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</p>
+    reportContainer.innerHTML = `
+      <div style="border: 4px solid #2563eb; padding: 20px; border-radius: 20px; min-height: 750px; display: flex; flex-direction: column;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #2563eb; margin: 0; font-size: 32px;">دليل بيانات الشباب الكامل</h1>
+          <p style="font-weight: bold; color: #64748b; font-size: 18px;">كنيسة الملاك روفائيل - اجتماع ثانوي بنين</p>
+          <div style="display: flex; justify-content: space-between; margin-top: 10px; color: #94a3b8; font-size: 14px; font-weight: bold;">
+            <span>تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
+            <span>إجمالي الشباب: ${youthList.length}</span>
+            <span>صفحة ${Math.floor(i/CHUNK_SIZE) + 1} من ${Math.ceil(youthList.length/CHUNK_SIZE)}</span>
+          </div>
+        </div>
+        <div style="flex-grow: 1;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 3px solid #2563eb;">
+                <th style="padding: 12px; text-align: center; font-size: 15px;">م</th>
+                <th style="padding: 12px; text-align: right; font-size: 15px;">الاسم</th>
+                <th style="padding: 12px; text-align: center; font-size: 15px;">الكود</th>
+                <th style="padding: 12px; text-align: center; font-size: 15px;">رقم الهاتف</th>
+                <th style="padding: 12px; text-align: right; font-size: 15px;">العنوان</th>
+                <th style="padding: 12px; text-align: center; font-size: 15px;">المرحلة</th>
+                <th style="padding: 12px; text-align: center; font-size: 15px;">الالتزام</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 12px; font-weight: bold;">
+          Angel Raphael Digital Systems | Created by: Kerolos Sfwat
+        </div>
       </div>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="background-color: #f8fafc; border-bottom: 2px solid #2563eb;">
-            <th style="padding: 12px; text-align: center;">م</th>
-            <th style="padding: 12px; text-align: right;">الاسم</th>
-            <th style="padding: 12px; text-align: center;">الكود</th>
-            <th style="padding: 12px; text-align: center;">رقم الهاتف</th>
-            <th style="padding: 12px; text-align: right;">العنوان</th>
-            <th style="padding: 12px; text-align: center;">المرحلة</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px;">
-        Developer by: kerolos sfwat | Angel Raphael Digital Systems
-      </div>
-    </div>
-  `;
+    `;
 
-  document.body.appendChild(reportContainer);
-  const canvas = await html2canvas(reportContainer, { scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for full list
-  const width = pdf.internal.pageSize.getWidth();
-  const height = (canvas.height * width) / canvas.width;
-  pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-  pdf.save("دليل_بيانات_الشباب.pdf");
-  document.body.removeChild(reportContainer);
+    document.body.appendChild(reportContainer);
+    const canvas = await html2canvas(reportContainer, { 
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const imgData = canvas.toDataURL('image/png');
+    
+    if (i > 0) pdf.addPage();
+    
+    const width = pdf.internal.pageSize.getWidth();
+    const height = (canvas.height * width) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+    
+    document.body.removeChild(reportContainer);
+  }
+  
+  pdf.save(`دليل_بيانات_الشباب_${new Date().toLocaleDateString('ar-EG')}.pdf`);
 };
 
 export const generateDetailedYouthReportPDF = async (youth: any, history: any[], points: any[]) => {
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const HISTORY_CHUNK = 12;
+  
+  // Page 1: Profile & Recent History
+  const firstHistoryChunk = history.slice(0, HISTORY_CHUNK);
   const reportContainer = document.createElement('div');
   reportContainer.style.width = '800px';
   reportContainer.style.padding = '40px';
@@ -299,7 +326,7 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
   reportContainer.style.fontFamily = "'Cairo', sans-serif";
   reportContainer.style.backgroundColor = '#ffffff';
 
-  const attendanceRows = history.map(h => `
+  const attendanceRows = firstHistoryChunk.map(h => `
     <tr style="border-bottom: 1px solid #e2e8f0;">
       <td style="padding: 12px;">${h.formatted}</td>
       <td style="padding: 12px; text-align: center;">
@@ -322,34 +349,8 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
     </tr>
   `).join('');
 
-  const pointsSection = points.length > 0 ? `
-    <div style="margin-top: 40px;">
-      <h3 style="color: #2563eb; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">سجل نقاط الماراثون</h3>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-        <thead>
-          <tr style="background-color: #f8fafc; border-bottom: 1px solid #2563eb;">
-            <th style="padding: 10px; text-align: right;">التاريخ</th>
-            <th style="padding: 10px; text-align: right;">النشاط</th>
-            <th style="padding: 10px; text-align: center;">النقاط</th>
-            <th style="padding: 10px; text-align: right;">السبب</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${points.map(p => `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 10px;">${formatDateArabic(p.weekDate)}</td>
-              <td style="padding: 10px;">${p.activity}</td>
-              <td style="padding: 10px; text-align: center; color: #166534; font-weight: bold;">+${p.points}</td>
-              <td style="padding: 10px; color: #64748b; font-size: 11px;">${p.reason}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  ` : '';
-
   reportContainer.innerHTML = `
-    <div style="border: 4px solid #2563eb; padding: 30px; border-radius: 25px;">
+    <div style="border: 4px solid #2563eb; padding: 30px; border-radius: 25px; min-height: 1050px;">
       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 30px;">
         <div style="flex: 1;">
           <h1 style="color: #2563eb; margin: 0; font-size: 28px;">تقرير متابعة شخصي</h1>
@@ -378,7 +379,7 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
         </div>
       </div>
 
-      <h3 style="color: #2563eb; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">سجل الحضور والغياب</h3>
+      <h3 style="color: #2563eb; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">سجل الحضور والغياب (أحدث ${firstHistoryChunk.length} أسابيع)</h3>
       <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <thead>
           <tr style="background-color: #f8fafc; border-bottom: 1px solid #2563eb;">
@@ -394,12 +395,9 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
         </thead>
         <tbody>${attendanceRows}</tbody>
       </table>
-
-      ${pointsSection}
-
-      <div style="margin-top: 50px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-        <p style="font-weight: bold; color: #64748b; margin: 0;">Developer by: kerolos sfwat</p>
-        <p style="font-size: 10px; color: #94a3b8;">Angel Raphael Digital Systems | 2026</p>
+      
+      <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px;">
+        تم استخراج التقرير بتاريخ: ${new Date().toLocaleString('ar-EG')}
       </div>
     </div>
   `;
@@ -407,10 +405,101 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
   document.body.appendChild(reportContainer);
   const canvas = await html2canvas(reportContainer, { scale: 2 });
   const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
   const width = pdf.internal.pageSize.getWidth();
   const height = (canvas.height * width) / canvas.width;
   pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-  pdf.save(`تقرير_${youth.name}.pdf`);
   document.body.removeChild(reportContainer);
+
+  // Additional Pages for remaining history
+  for (let i = HISTORY_CHUNK; i < history.length; i += 25) {
+    const chunk = history.slice(i, i + 25);
+    const chunkContainer = document.createElement('div');
+    chunkContainer.style.width = '800px';
+    chunkContainer.style.padding = '40px';
+    chunkContainer.dir = 'rtl';
+    chunkContainer.style.fontFamily = "'Cairo', sans-serif";
+    chunkContainer.style.backgroundColor = '#ffffff';
+    
+    const rows = chunk.map(h => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 10px;">${h.formatted}</td>
+        <td style="padding: 10px; text-align: center;">${h.status === 'present' ? 'حضور' : 'غياب'}</td>
+        <td style="padding: 10px; text-align: center;">${h.record.liturgy ? '✅' : '❌'}</td>
+        <td style="padding: 10px; text-align: center;">${h.record.communion ? '✅' : '❌'}</td>
+        <td style="padding: 10px; text-align: center;">${h.record.meeting ? '✅' : '❌'}</td>
+        <td style="padding: 10px; text-align: center;">${h.record.bibleReading ? '✅' : '❌'}</td>
+        <td style="padding: 10px; text-align: center;">${h.record.confession ? '✅' : '❌'}</td>
+      </tr>
+    `).join('');
+
+    chunkContainer.innerHTML = `
+      <div style="border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px;">
+        <h3 style="color: #2563eb; margin-bottom: 15px;">تكملة سجل الحضور - ${youth.name}</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 1px solid #2563eb;">
+              <th style="padding: 8px; text-align: right;">التاريخ</th>
+              <th style="padding: 8px; text-align: center;">الحالة</th>
+              <th style="padding: 8px; text-align: center;">قداس</th>
+              <th style="padding: 8px; text-align: center;">تناول</th>
+              <th style="padding: 8px; text-align: center;">اجتماع</th>
+              <th style="padding: 8px; text-align: center;">إنجيل</th>
+              <th style="padding: 8px; text-align: center;">اعتراف</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+    
+    document.body.appendChild(chunkContainer);
+    const canvas = await html2canvas(chunkContainer, { scale: 2 });
+    pdf.addPage();
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, (canvas.height * width) / canvas.width);
+    document.body.removeChild(chunkContainer);
+  }
+
+  // Points Page
+  if (points.length > 0) {
+    const pointsContainer = document.createElement('div');
+    pointsContainer.style.width = '800px';
+    pointsContainer.style.padding = '40px';
+    pointsContainer.dir = 'rtl';
+    pointsContainer.style.fontFamily = "'Cairo', sans-serif";
+    pointsContainer.style.backgroundColor = '#ffffff';
+    
+    pointsContainer.innerHTML = `
+      <div style="border: 4px solid #2563eb; padding: 30px; border-radius: 25px; min-height: 1050px;">
+        <h3 style="color: #2563eb; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-size: 24px;">سجل نقاط الماراثون - ${youth.name}</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #2563eb;">
+              <th style="padding: 12px; text-align: right;">التاريخ</th>
+              <th style="padding: 12px; text-align: right;">النشاط</th>
+              <th style="padding: 12px; text-align: center;">النقاط</th>
+              <th style="padding: 12px; text-align: right;">السبب</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${points.map(p => `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 12px;">${formatDateArabic(p.weekDate)}</td>
+                <td style="padding: 12px;">${p.activity}</td>
+                <td style="padding: 12px; text-align: center; color: #166534; font-weight: bold;">+${p.points}</td>
+                <td style="padding: 12px; color: #64748b; font-size: 11px;">${p.reason}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+    document.body.appendChild(pointsContainer);
+    const canvas = await html2canvas(pointsContainer, { scale: 2 });
+    pdf.addPage();
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, (canvas.height * width) / canvas.width);
+    document.body.removeChild(pointsContainer);
+  }
+
+  pdf.save(`تقرير_${youth.name}_${new Date().toLocaleDateString('ar-EG')}.pdf`);
 };

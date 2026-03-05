@@ -228,12 +228,14 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
               <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-5 py-2 rounded-full text-sm font-black border border-blue-200 dark:border-blue-800 flex items-center gap-2">
                 <Target size={16} /> {youth.grade}
               </span>
-              <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                <Hash size={16} /> الكود: {youth.code}
-              </span>
               {youth.region && (
                 <span className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-5 py-2 rounded-full text-sm font-black border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
-                  <Target size={16} /> المنطقة: {youth.region}
+                  <Target size={16} /> المنطقة: {youth.region} | كود: {youth.code}
+                </span>
+              )}
+              {!youth.region && (
+                <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                  <Hash size={16} /> الكود: {youth.code}
                 </span>
               )}
               {youth.phone && (
