@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { storageService } from '../services/storageService';
-import { Youth, AttendanceRecord, Marathon, MarathonGroup } from '../types';
+import { Youth, AttendanceRecord, Marathon, MarathonGroup, Visitation } from '../types';
 import { 
   ArrowRight, Church, Users, BookOpen, ShieldCheck, 
   Calendar, Share2, Award, LogOut, Hash, Check, Phone, 
-  TrendingUp, Star, Trophy, Target, FileDown, Loader2, X, Wine, Clock
+  TrendingUp, Star, Trophy, Target, FileDown, Loader2, X, Wine, Clock, MapPin
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -29,6 +29,8 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const [marathons, setMarathons] = useState<Marathon[]>([]);
   const [groups, setGroups] = useState<MarathonGroup[]>([]);
   const [marathonPoints, setMarathonPoints] = useState<any[]>([]);
+  const [visitations, setVisitations] = useState<Visitation[]>([]);
+  const [servants, setServants] = useState<any[]>([]);
   const [summary, setSummary] = useState({ 
     present: 0, absent: 0, totalFridays: 0, 
     liturgy: 0, meeting: 0, bible: 0, confession: 0, visitation: 0, communion: 0 
@@ -97,6 +99,10 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
       setMarathons(storageService.getMarathons());
       setGroups(storageService.getMarathonGroups());
       setMarathonPoints(storageService.getMarathonActivityPoints().filter(p => p.youthId === found.id));
+      
+      const allVisitations = storageService.getVisitations();
+      setVisitations(allVisitations.filter(v => v.youthId === found.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setServants(storageService.getServants());
     } else {
       if (id !== 'portal') navigate('/');
     }
@@ -243,6 +249,11 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                   <Phone size={16} /> الهاتف: {youth.phone}
                 </span>
               )}
+              {youth.address && (
+                <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                  <MapPin size={16} /> العنوان: {youth.address}
+                </span>
+              )}
               {marathonPoints.length > 0 && (
                 <span className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-5 py-2 rounded-full text-sm font-black border border-amber-200 dark:border-amber-800 flex items-center gap-2">
                   <Star size={16} /> نقاط الماراثون: {marathonPoints.reduce((sum, p) => sum + p.points, 0)}
@@ -384,7 +395,7 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
       </div>
 
       {marathonPoints.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden mb-10">
           <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-amber-50/50 dark:bg-amber-900/10">
             <h3 className="text-xl font-black text-amber-800 dark:text-amber-300 flex items-center gap-3">
               <Star className="text-amber-500" /> سجل نقاط الماراثون
@@ -417,6 +428,50 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {visitations.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-rose-50/50 dark:bg-rose-900/10">
+            <h3 className="text-xl font-black text-rose-800 dark:text-rose-300 flex items-center gap-3">
+              <TrendingUp className="text-rose-500" /> سجل الافتقاد والمتابعة
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-8 py-4">التاريخ</th>
+                  <th className="px-8 py-4">الخادم</th>
+                  <th className="px-8 py-4">ملاحظات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {visitations.map((v, idx) => {
+                  const s = servants.find(servant => servant.id === v.servantId);
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-8 py-5">
+                        <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{formatDateArabic(v.date)}</p>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-xs">
+                            {s?.name[0] || '?'}
+                          </div>
+                          <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{s?.name || 'خادم غير معروف'}</p>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="text-xs font-bold text-slate-500">{v.notes}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

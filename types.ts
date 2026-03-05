@@ -23,6 +23,8 @@ export interface Servant {
   phone: string;
   code: string; // كود من 5 أرقام
   responsibility?: string; // e.g., 'مجموعة القديس مارمرقس'
+  image?: string;
+  address?: string;
   addedAt: number;
 }
 
@@ -52,6 +54,25 @@ export interface AttendanceRecord {
   memorizationPart?: boolean;
   fasting?: boolean;
   tonia?: boolean;
+}
+
+export interface ServantAttendance {
+  id: string;
+  servantId: string;
+  date: string;
+  liturgy: boolean;
+  meeting: boolean;
+  preparation: boolean;
+  timestamp: number;
+}
+
+export interface Visitation {
+  id: string;
+  servantId: string;
+  youthId: string;
+  date: string;
+  notes?: string;
+  timestamp: number;
 }
 
 export interface SystemConfig {

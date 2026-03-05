@@ -1,5 +1,5 @@
 
-import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant } from '../types';
+import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
 
 const YOUTH_KEY = 'church_db_youth_v3';
 const ATTENDANCE_KEY = 'church_db_attendance_v3';
@@ -13,6 +13,8 @@ const SERVANTS_KEY = 'church_db_servants';
 const MARATHONS_KEY = 'church_db_marathons';
 const MARATHON_GROUPS_KEY = 'church_db_marathon_groups';
 const MARATHON_POINTS_KEY = 'church_db_marathon_points';
+const SERVANT_ATTENDANCE_KEY = 'church_db_servant_attendance';
+const VISITATION_KEY = 'church_db_visitation';
 
 const API_URL = '/api/data'; 
 
@@ -206,6 +208,36 @@ export const storageService = {
     storageService.saveMarathonActivityPoints([...current, point]);
   },
 
+  // Special Follow-up Methods
+  getServantAttendance: (): ServantAttendance[] => {
+    try { return JSON.parse(localStorage.getItem(SERVANT_ATTENDANCE_KEY) || '[]'); } catch { return []; }
+  },
+  saveServantAttendance: async (records: ServantAttendance[]) => {
+    localStorage.setItem(SERVANT_ATTENDANCE_KEY, JSON.stringify(records));
+    storageService.markDirty();
+    const success = await storageService.pushToCloud();
+    window.dispatchEvent(new Event('storage_updated'));
+    return success;
+  },
+  getVisitations: (): Visitation[] => {
+    try { return JSON.parse(localStorage.getItem(VISITATION_KEY) || '[]'); } catch { return []; }
+  },
+  saveVisitations: async (visitations: Visitation[]) => {
+    localStorage.setItem(VISITATION_KEY, JSON.stringify(visitations));
+    storageService.markDirty();
+    const success = await storageService.pushToCloud();
+    window.dispatchEvent(new Event('storage_updated'));
+    return success;
+  },
+  addVisitation: (visitation: Visitation) => {
+    const current = storageService.getVisitations();
+    storageService.saveVisitations([...current, visitation]);
+  },
+  deleteVisitation: (id: string) => {
+    const current = storageService.getVisitations().filter(v => v.id !== id);
+    storageService.saveVisitations(current);
+  },
+
   deleteAttendanceRecord: async (recordId: string): Promise<boolean> => {
     const currentAttendance = storageService.getAttendance();
     const recordToDelete = currentAttendance.find(r => r.id === recordId);
@@ -304,6 +336,8 @@ export const storageService = {
         marathonGroups: storageService.getMarathonGroups(),
         marathonPoints: storageService.getMarathonActivityPoints(),
         servants: storageService.getServants(),
+        servantAttendance: storageService.getServantAttendance(),
+        visitations: storageService.getVisitations(),
         updatedAt: new Date().toISOString()
       };
       
@@ -348,6 +382,8 @@ export const storageService = {
         if (Array.isArray(data.marathonGroups)) localStorage.setItem(MARATHON_GROUPS_KEY, JSON.stringify(data.marathonGroups));
         if (Array.isArray(data.marathonPoints)) localStorage.setItem(MARATHON_POINTS_KEY, JSON.stringify(data.marathonPoints));
         if (Array.isArray(data.servants)) localStorage.setItem(SERVANTS_KEY, JSON.stringify(data.servants));
+        if (Array.isArray(data.servantAttendance)) localStorage.setItem(SERVANT_ATTENDANCE_KEY, JSON.stringify(data.servantAttendance));
+        if (Array.isArray(data.visitations)) localStorage.setItem(VISITATION_KEY, JSON.stringify(data.visitations));
 
         storageService.clearDirty();
         const now = new Date().toLocaleString('ar-EG');

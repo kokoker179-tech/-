@@ -23,14 +23,19 @@ export const getActiveFriday = () => {
   const d = new Date();
   const day = d.getDay();
   
-  // Shift to the NEXT Friday if today is Saturday (6) through Thursday (4)
-  // If today is Friday (5), diff is 0
-  const diffToNextFriday = (5 - day + 7) % 7;
-  d.setDate(d.getDate() + diffToNextFriday);
+  // If today is Friday (5), diff is 0.
+  // If today is Saturday (6), diff is -1.
+  // If today is Sunday (0), diff is -2.
+  // ...
+  // If today is Thursday (4), diff is -6.
   
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const date = String(d.getDate()).padStart(2, '0');
+  const diffToLastFriday = (day >= 5) ? (5 - day) : (5 - day - 7);
+  const targetDate = new Date(d);
+  targetDate.setDate(d.getDate() + diffToLastFriday);
+  
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const date = String(targetDate.getDate()).padStart(2, '0');
   const result = `${year}-${month}-${date}`;
   
   // Enforce system start date
@@ -502,4 +507,185 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
   }
 
   pdf.save(`تقرير_${youth.name}_${new Date().toLocaleDateString('ar-EG')}.pdf`);
+};
+
+export const generateMarathonFullWeeklyReport = async (marathon: any, groups: any[], allYouth: any[], allPoints: any[], weekDate: string) => {
+  const reportContainer = document.createElement('div');
+  reportContainer.style.width = '1000px';
+  reportContainer.style.padding = '40px';
+  reportContainer.dir = 'rtl';
+  reportContainer.style.fontFamily = "'Cairo', sans-serif";
+  reportContainer.style.backgroundColor = '#ffffff';
+
+  const weekPoints = allPoints.filter((p: any) => p.marathonId === marathon.id && p.weekDate === weekDate);
+
+  // Group stats for this week
+  const groupStats = groups.map(g => {
+    const gPoints = weekPoints.filter((p: any) => g.youthIds.includes(p.youthId));
+    const total = gPoints.reduce((sum: number, p: any) => sum + p.points, 0);
+    return { ...g, total };
+  }).sort((a, b) => b.total - a.total);
+
+  const groupRows = groupStats.map((g, idx) => `
+    <tr style="border-bottom: 1px solid #e2e8f0; background: ${idx === 0 ? '#fef3c7' : 'transparent'};">
+      <td style="padding: 15px; font-weight: 900; text-align: center;">${idx + 1}</td>
+      <td style="padding: 15px; font-weight: bold;">${g.name} ${idx === 0 ? '🏆' : ''}</td>
+      <td style="padding: 15px; color: #64748b;">${g.servantName}</td>
+      <td style="padding: 15px; font-weight: 900; color: #2563eb; text-align: center; font-size: 20px;">${g.total}</td>
+    </tr>
+  `).join('');
+
+  // Individual details
+  const youthStats = allYouth
+    .map(y => {
+      const yPoints = weekPoints.filter((p: any) => p.youthId === y.id);
+      const total = yPoints.reduce((sum: number, p: any) => sum + p.points, 0);
+      return { ...y, total, points: yPoints };
+    })
+    .filter(y => y.total > 0)
+    .sort((a, b) => b.total - a.total);
+
+  const youthRows = youthStats.map(y => {
+    const activities = y.points.map((p: any) => {
+      let activityName = p.reason || p.activity;
+      return `<span style="display: inline-block; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 10px;">
+        <b style="color: #10b981;">${activityName}:</b> ${p.points}ن
+      </span>`;
+    }).join('');
+
+    return `
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td style="padding: 10px; font-weight: bold; font-size: 12px;">${y.name}</td>
+        <td style="padding: 10px;">${activities}</td>
+        <td style="padding: 10px; font-weight: 900; color: #059669; text-align: center;">${y.total}</td>
+      </tr>
+    `;
+  }).join('');
+
+  reportContainer.innerHTML = `
+    <div style="border: 10px solid #2563eb; padding: 40px; border-radius: 40px;">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 48px; color: #2563eb; margin: 0;">تقرير الماراثون الأسبوعي</h1>
+        <h2 style="font-size: 28px; color: #64748b; margin: 10px 0;">${marathon.name}</h2>
+        <div style="display: inline-block; background: #2563eb; color: white; padding: 10px 30px; border-radius: 15px; font-weight: 900; font-size: 20px; margin-top: 10px;">
+          الأسبوع: ${formatDateArabic(weekDate)}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 50px;">
+        <h3 style="font-size: 24px; border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; color: #1e293b;">ترتيب المجموعات (هذا الأسبوع)</h3>
+        <table style="width: 100%; border-collapse: collapse; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+          <thead>
+            <tr style="background: #2563eb; color: white;">
+              <th style="padding: 15px; width: 80px;">المركز</th>
+              <th style="padding: 15px; text-align: right;">المجموعة</th>
+              <th style="padding: 15px; text-align: right;">الخادم</th>
+              <th style="padding: 15px;">النقاط</th>
+            </tr>
+          </thead>
+          <tbody>${groupRows}</tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 style="font-size: 24px; border-bottom: 3px solid #059669; padding-bottom: 10px; margin-bottom: 20px; color: #1e293b;">تفاصيل نقاط الشباب</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f8fafc; border-bottom: 2px solid #059669;">
+              <th style="padding: 12px; text-align: right;">الاسم</th>
+              <th style="padding: 12px; text-align: right;">الأنشطة</th>
+              <th style="padding: 12px; width: 100px;">الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>${youthRows}</tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 60px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; color: #94a3b8;">
+        <p style="margin: 0; font-weight: bold;">نظام الملاك روفائيل الرقمي - 2026</p>
+        <p style="font-size: 10px;">تم استخراج التقرير بتاريخ: ${new Date().toLocaleString('ar-EG')}</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(reportContainer);
+  const canvas = await html2canvas(reportContainer, { scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const width = pdf.internal.pageSize.getWidth();
+  const height = (canvas.height * width) / canvas.width;
+  
+  let heightLeft = height;
+  let position = 0;
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  pdf.addImage(imgData, 'PNG', 0, position, width, height);
+  heightLeft -= pageHeight;
+
+  while (heightLeft >= 0) {
+    position = heightLeft - height;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, position, width, height);
+    heightLeft -= pageHeight;
+  }
+
+  pdf.save(`تقرير_شامل_ماراثون_${weekDate}.pdf`);
+  document.body.removeChild(reportContainer);
+};
+
+export const generateServantsPDF = async (servants: any[]) => {
+  const reportContainer = document.createElement('div');
+  reportContainer.style.width = '800px';
+  reportContainer.style.padding = '40px';
+  reportContainer.dir = 'rtl';
+  reportContainer.style.fontFamily = "'Cairo', sans-serif";
+  reportContainer.style.backgroundColor = '#ffffff';
+
+  const rows = servants.map((s, idx) => `
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 12px; text-align: center;">${idx + 1}</td>
+      <td style="padding: 12px; font-weight: bold;">${s.name}</td>
+      <td style="padding: 12px;">${s.role}</td>
+      <td style="padding: 12px; direction: ltr; text-align: right;">${s.phone}</td>
+      <td style="padding: 12px; text-align: center;">${s.code}</td>
+      <td style="padding: 12px;">${s.address || '-'}</td>
+      <td style="padding: 12px;">${s.responsibility || '-'}</td>
+    </tr>
+  `).join('');
+
+  reportContainer.innerHTML = `
+    <div style="border: 4px solid #f59e0b; padding: 30px; border-radius: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #f59e0b; margin: 0; font-size: 32px;">قائمة خدام الاجتماع</h1>
+        <p style="color: #64748b; font-weight: bold; margin-top: 5px;">نظام الملاك روفائيل الرقمي</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #fff7ed; border-bottom: 2px solid #f59e0b;">
+            <th style="padding: 12px; width: 50px;">#</th>
+            <th style="padding: 12px; text-align: right;">الاسم</th>
+            <th style="padding: 12px; text-align: right;">الدور</th>
+            <th style="padding: 12px; text-align: right;">الهاتف</th>
+            <th style="padding: 12px;">الكود</th>
+            <th style="padding: 12px; text-align: right;">العنوان</th>
+            <th style="padding: 12px; text-align: right;">المسؤولية</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 10px;">
+        تم استخراج التقرير بتاريخ: ${new Date().toLocaleString('ar-EG')}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(reportContainer);
+  const canvas = await html2canvas(reportContainer, { scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const width = pdf.internal.pageSize.getWidth();
+  const height = (canvas.height * width) / canvas.width;
+  pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+  pdf.save(`قائمة_الخدام_${new Date().toLocaleDateString('ar-EG')}.pdf`);
+  document.body.removeChild(reportContainer);
 };

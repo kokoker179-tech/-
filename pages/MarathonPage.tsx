@@ -22,8 +22,9 @@ export const MarathonPage: React.FC = () => {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [activityPoints, setActivityPoints] = useState<MarathonActivityPoints[]>([]);
   
-  const [view, setView] = useState<'list' | 'dashboard' | 'groups' | 'points' | 'settings' | 'create'>('list');
+  const [view, setView] = useState<'list' | 'dashboard' | 'groups' | 'points' | 'settings' | 'create' | 'weekly_summary'>('list');
   const [isEditing, setIsEditing] = useState(false);
+  const [transferingYouth, setTransferingYouth] = useState<{youthId: string, fromGroupId: string} | null>(null);
   const [newMarathonData, setNewMarathonData] = useState({
     name: '',
     startDay: '',
@@ -92,6 +93,34 @@ export const MarathonPage: React.FC = () => {
         isWinner: activeMarathon.winnerGroupId === group.id
       };
     }).sort((a, b) => b.totalPoints - a.totalPoints);
+  }, [activeMarathon, groups, activityPoints]);
+
+  // Calculate Weekly Stats for all groups
+  const weeklyStats = useMemo(() => {
+    if (!activeMarathon) return [];
+    
+    const weeks: Record<string, { groups: Record<string, number>, youth: Record<string, MarathonActivityPoints[]> }> = {};
+    
+    activityPoints
+      .filter(p => p.marathonId === activeMarathon.id)
+      .forEach(p => {
+        if (!weeks[p.weekDate]) {
+          weeks[p.weekDate] = { groups: {}, youth: {} };
+        }
+        
+        // Find group for this youth
+        const group = groups.find(g => g.youthIds.includes(p.youthId));
+        if (group) {
+          weeks[p.weekDate].groups[group.id] = (weeks[p.weekDate].groups[group.id] || 0) + p.points;
+        }
+        
+        if (!weeks[p.weekDate].youth[p.youthId]) {
+          weeks[p.weekDate].youth[p.youthId] = [];
+        }
+        weeks[p.weekDate].youth[p.youthId].push(p);
+      });
+      
+    return Object.entries(weeks).sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
   }, [activeMarathon, groups, activityPoints]);
 
   const handleCreateMarathon = () => {
@@ -289,25 +318,7 @@ export const MarathonPage: React.FC = () => {
                           ))}
                         </div>
                         <button 
-                          onClick={() => {
-                            const targetGroupId = window.prompt('أدخل اسم المجموعة المراد النقل إليها:');
-                            const targetGroup = groups.find(g => g.name === targetGroupId);
-                            if (targetGroup) {
-                              // Remove from current
-                              storageService.updateMarathonGroup({
-                                ...group,
-                                youthIds: group.youthIds.filter(id => id !== y.id)
-                              });
-                              // Add to target
-                              storageService.updateMarathonGroup({
-                                ...targetGroup,
-                                youthIds: [...targetGroup.youthIds, y.id]
-                              });
-                              alert(`تم نقل ${y.name} إلى ${targetGroup.name}`);
-                            } else {
-                              alert('المجموعة غير موجودة');
-                            }
-                          }}
+                          onClick={() => setTransferingYouth({ youthId: y.id, fromGroupId: group.id })}
                           className="text-[10px] text-blue-500 font-bold hover:underline text-right"
                         >
                           نقل لمجموعة أخرى
@@ -427,6 +438,119 @@ export const MarathonPage: React.FC = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderWeeklySummary = () => (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h3 className="text-2xl font-black text-slate-800 dark:text-white">ملخص النقاط الأسبوعي</h3>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => {
+              const week = window.prompt('أدخل تاريخ الجمعة (YYYY-MM-DD):', selectedWeek);
+              if (week) setSelectedWeek(week);
+            }}
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-sm shadow-sm"
+          >
+            تغيير الأسبوع المختار
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-12">
+        {weeklyStats.map(([date, data]: [string, any]) => (
+          <div key={date} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="p-8 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <div>
+                <h4 className="text-2xl font-black text-slate-800 dark:text-white">{formatDateArabic(date)}</h4>
+                <p className="text-slate-500 font-bold">إجمالي نقاط الأسبوع: {Object.values(data.groups as Record<string, number>).reduce((a: number, b: number) => a + b, 0)} نقطة</p>
+              </div>
+              <button 
+                onClick={() => {
+                  // We'll implement this function in constants.ts
+                  // @ts-ignore
+                  import('../constants').then(m => m.generateMarathonFullWeeklyReport(activeMarathon, groups, youth, activityPoints, date));
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black shadow-lg hover:bg-emerald-700 transition-all"
+              >
+                <Download size={20} /> تحميل تقرير الأسبوع
+              </button>
+            </div>
+            
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Groups Summary */}
+                <div>
+                  <h5 className="text-lg font-black text-blue-600 mb-6 flex items-center gap-2">
+                    <Trophy size={20} /> ترتيب المجموعات هذا الأسبوع
+                  </h5>
+                  <div className="space-y-4">
+                    {Object.entries(data.groups as Record<string, number>)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([groupId, pts]) => {
+                        const g = groups.find(item => item.id === groupId);
+                        return (
+                          <div key={groupId} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+                            <div>
+                              <p className="font-black text-slate-800 dark:text-white">{g?.name || 'مجموعة محذوفة'}</p>
+                              <p className="text-xs text-slate-500 font-bold">الخادم: {g?.servantName}</p>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-2xl font-black text-blue-600">{pts}</p>
+                              <p className="text-[10px] text-slate-400 font-black uppercase">نقطة</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* Individual Details */}
+                <div>
+                  <h5 className="text-lg font-black text-emerald-600 mb-6 flex items-center gap-2">
+                    <Users size={20} /> تفاصيل نقاط الشباب
+                  </h5>
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                    {Object.entries(data.youth as Record<string, MarathonActivityPoints[]>)
+                      .sort((a, b) => {
+                        const sumA = a[1].reduce((s: number, p: MarathonActivityPoints) => s + p.points, 0);
+                        const sumB = b[1].reduce((s: number, p: MarathonActivityPoints) => s + p.points, 0);
+                        return sumB - sumA;
+                      })
+                      .map(([yId, ptsList]) => {
+                        const y = youth.find(item => item.id === yId);
+                        const total = ptsList.reduce((s: number, p: MarathonActivityPoints) => s + p.points, 0);
+                        return (
+                          <div key={yId} className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <p className="font-bold text-slate-800 dark:text-white">{y?.name || 'شاب محذوف'}</p>
+                                <p className="text-[10px] text-slate-400 font-black">{y?.code}</p>
+                              </div>
+                              <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-black text-sm">
+                                {total} ن
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              {ptsList.map((p: MarathonActivityPoints, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2 text-[10px]">
+                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                  <span className="font-black text-slate-600 dark:text-slate-400">{p.reason || p.activity}:</span>
+                                  <span className="font-bold text-emerald-600">+{p.points}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -787,6 +911,7 @@ export const MarathonPage: React.FC = () => {
         <TabButton active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={TrendingUp} label="لوحة التحكم" />
         <TabButton active={view === 'groups'} onClick={() => setView('groups')} icon={Users} label="المجموعات" />
         <TabButton active={view === 'points'} onClick={() => setView('points')} icon={Star} label="تسجيل النقاط" />
+        <TabButton active={view === 'weekly_summary'} onClick={() => setView('weekly_summary')} icon={FileText} label="ملخص الأسابيع" />
         <TabButton active={view === 'settings'} onClick={() => setView('settings')} icon={Settings} label="الإعدادات" />
       </div>
 
@@ -803,6 +928,7 @@ export const MarathonPage: React.FC = () => {
           {view === 'groups' && renderGroups()}
           {view === 'points' && renderPointsEntry()}
           {view === 'settings' && renderSettings()}
+          {view === 'weekly_summary' && renderWeeklySummary()}
           {view === 'create' && renderCreateView()}
           {view === 'list' && (
             <div className="space-y-6">
@@ -826,6 +952,72 @@ export const MarathonPage: React.FC = () => {
             </div>
           )}
         </motion.div>
+      </AnimatePresence>
+
+      {/* Transfer Youth Modal */}
+      <AnimatePresence>
+        {transferingYouth && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-8 bg-blue-600 text-white">
+                <h3 className="text-2xl font-black flex items-center gap-3">
+                  <UserPlus /> نقل الشاب لمجموعة أخرى
+                </h3>
+                <p className="text-blue-100 font-bold mt-2">
+                  {youth.find(y => y.id === transferingYouth.youthId)?.name}
+                </p>
+              </div>
+              <div className="p-8 space-y-4">
+                <p className="text-sm font-black text-slate-500 uppercase tracking-widest">اختر المجموعة الجديدة:</p>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  {groups
+                    .filter(g => activeMarathon?.groupIds.includes(g.id) && g.id !== transferingYouth.fromGroupId)
+                    .map(group => (
+                      <button 
+                        key={group.id}
+                        onClick={() => {
+                          // Remove from current
+                          const fromGroup = groups.find(g => g.id === transferingYouth.fromGroupId);
+                          if (fromGroup) {
+                            storageService.updateMarathonGroup({
+                              ...fromGroup,
+                              youthIds: fromGroup.youthIds.filter(id => id !== transferingYouth.youthId)
+                            });
+                          }
+                          // Add to target
+                          storageService.updateMarathonGroup({
+                            ...group,
+                            youthIds: [...group.youthIds, transferingYouth.youthId]
+                          });
+                          setTransferingYouth(null);
+                          alert('تم النقل بنجاح');
+                        }}
+                        className="w-full p-4 rounded-2xl border-2 border-slate-50 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-right flex justify-between items-center group"
+                      >
+                        <div>
+                          <p className="font-black text-slate-800 dark:text-white group-hover:text-blue-600">{group.name}</p>
+                          <p className="text-xs text-slate-500 font-bold">الخادم: {group.servantName}</p>
+                        </div>
+                        <ChevronLeft size={20} className="text-slate-300 group-hover:text-blue-500" />
+                      </button>
+                    ))
+                  }
+                </div>
+                <button 
+                  onClick={() => setTransferingYouth(null)}
+                  className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-all"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );

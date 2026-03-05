@@ -139,6 +139,14 @@ export const AddYouth: React.FC = () => {
           </div>
 
           <div className="space-y-2">
+              <label className="block text-sm font-black text-slate-700">كود الشاب (تلقائي)</label>
+              <div className="relative">
+                <Hash className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input type="text" readOnly className="w-full px-5 pr-12 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-black text-slate-500 cursor-not-allowed" value={formData.code} />
+              </div>
+          </div>
+
+          <div className="space-y-2">
               <label className="block text-sm font-black text-slate-700">الاسم بالكامل</label>
               <input type="text" required className="w-full px-5 py-4 rounded-2xl border border-slate-200 font-bold" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
           </div>

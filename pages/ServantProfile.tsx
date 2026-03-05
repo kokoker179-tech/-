@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { storageService } from '../services/storageService';
-import { Servant, AttendanceRecord } from '../types';
+import { Servant, AttendanceRecord, Visitation, Youth } from '../types';
 import { 
   ArrowRight, Church, Users, ShieldCheck, 
   Calendar, Award, LogOut, Hash, Check, 
-  TrendingUp, Star, FileDown, Loader2, UserCircle
+  TrendingUp, Star, FileDown, Loader2, UserCircle, Phone, MapPin
 } from 'lucide-react';
 import { formatDateArabic, getActiveFriday } from '../constants';
 
@@ -16,6 +16,8 @@ export const ServantProfile: React.FC = () => {
   
   const [servant, setServant] = useState<Servant | null>(null);
   const [weeklyHistory, setWeeklyHistory] = useState<any[]>([]);
+  const [visitations, setVisitations] = useState<Visitation[]>([]);
+  const [youth, setYouth] = useState<Youth[]>([]);
   const [summary, setSummary] = useState({ 
     present: 0, absent: 0, totalFridays: 0, 
     liturgy: 0, meeting: 0, visitation: 0 
@@ -28,36 +30,43 @@ export const ServantProfile: React.FC = () => {
     if (found) {
       setServant(found);
       loadDetailedStats(found);
+      
+      const allVisitations = storageService.getVisitations();
+      setVisitations(allVisitations.filter(v => v.servantId === found.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setYouth(storageService.getYouth());
     } else {
       navigate('/servants');
     }
   }, [id, navigate]);
 
   const loadDetailedStats = (found: Servant) => {
-    const allRecords = storageService.getAttendance().filter(r => r.servantId === found.id);
+    const allRecords = storageService.getServantAttendance().filter(r => r.servantId === found.id);
     const history = [];
     let tempDate = new Date(getActiveFriday());
     for (let i = 0; i < 12; i++) {
       const dateStr = tempDate.toISOString().split('T')[0];
       const record = allRecords.find(r => r.date === dateStr);
-      const isPresent = record && (record.liturgy || record.meeting);
+      const isPresent = record && (record.liturgy || record.meeting || record.preparation);
       
       history.push({
         date: dateStr,
         formatted: formatDateArabic(dateStr),
         status: isPresent ? 'present' : 'absent',
-        record: record || { liturgy: false, meeting: false }
+        record: record || { liturgy: false, meeting: false, preparation: false }
       });
       tempDate.setDate(tempDate.getDate() - 7);
     }
     setWeeklyHistory(history);
+    
+    const servantVisitations = storageService.getVisitations().filter(v => v.servantId === found.id);
+    
     setSummary({
       present: history.filter(h => h.status === 'present').length,
       absent: history.filter(h => h.status === 'absent').length,
       totalFridays: history.length,
       liturgy: allRecords.filter(r => r.liturgy).length,
       meeting: allRecords.filter(r => r.meeting).length,
-      visitation: allRecords.filter(r => r.visitation).length
+      visitation: servantVisitations.length
     });
   };
 
@@ -80,8 +89,12 @@ export const ServantProfile: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-12 shadow-lg border border-slate-100 dark:border-slate-800 mb-8 overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-          <div className="w-40 h-40 md:w-48 md:h-48 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center text-white text-6xl font-black shadow-2xl border-8 border-white dark:border-slate-800">
-            {servant.name[0]}
+          <div className="w-40 h-40 md:w-48 md:h-48 bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] flex items-center justify-center text-white text-6xl font-black shadow-2xl border-8 border-white dark:border-slate-800 overflow-hidden">
+            {servant.image ? (
+              <img src={servant.image} alt={servant.name} className="w-full h-full object-cover" />
+            ) : (
+              servant.name[0]
+            )}
           </div>
           <div className="text-center md:text-right flex-1">
             <p className="text-blue-600 font-bold mb-2">ملف الخادم الأمين</p>
@@ -93,6 +106,14 @@ export const ServantProfile: React.FC = () => {
               <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-5 py-2 rounded-full text-sm font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Hash size={16} /> كود الخادم: {servant.code}
               </span>
+              <span className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-5 py-2 rounded-full text-sm font-black border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
+                <Phone size={16} /> {servant.phone}
+              </span>
+              {servant.address && (
+                <span className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-5 py-2 rounded-full text-sm font-black border border-amber-200 dark:border-amber-800 flex items-center gap-2">
+                  <MapPin size={16} /> {servant.address}
+                </span>
+              )}
             </div>
             <div className="w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-200 dark:border-slate-700">
               <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-1000" style={{ width: `${attendanceRate}%` }}></div>
@@ -126,7 +147,7 @@ export const ServantProfile: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden mb-10">
         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
           <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
             <Calendar className="text-blue-600" /> سجل التزام الخادم
@@ -140,6 +161,7 @@ export const ServantProfile: React.FC = () => {
                 <th className="px-8 py-4 text-center">الحالة</th>
                 <th className="px-8 py-4 text-center">قداس</th>
                 <th className="px-8 py-4 text-center">اجتماع</th>
+                <th className="px-8 py-4 text-center">تحضير</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -162,12 +184,59 @@ export const ServantProfile: React.FC = () => {
                   <td className="px-8 py-5 text-center">
                     {h.record.meeting ? <Check size={20} className="mx-auto text-emerald-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
                   </td>
+                  <td className="px-8 py-5 text-center">
+                    {h.record.preparation ? <Check size={20} className="mx-auto text-blue-500" /> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {visitations.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-rose-50/50 dark:bg-rose-900/10">
+            <h3 className="text-xl font-black text-rose-800 dark:text-rose-300 flex items-center gap-3">
+              <TrendingUp className="text-rose-500" /> سجل الافتقاد المنفذ
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-8 py-4">التاريخ</th>
+                  <th className="px-8 py-4">الشاب</th>
+                  <th className="px-8 py-4">ملاحظات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {visitations.map((v, idx) => {
+                  const y = youth.find(y => y.id === v.youthId);
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-8 py-5">
+                        <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{formatDateArabic(v.date)}</p>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-black text-xs">
+                            {y?.name[0] || '?'}
+                          </div>
+                          <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{y?.name || 'شاب غير معروف'}</p>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="text-xs font-bold text-slate-500">{v.notes}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
