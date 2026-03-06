@@ -258,12 +258,24 @@ export const generateFullReportPDF = async (youthList: any[], records: any[], cu
   
   for (let i = 0; i < youthList.length; i += CHUNK_SIZE) {
     const chunk = youthList.slice(i, i + CHUNK_SIZE);
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.top = '0';
+    wrapper.style.left = '0';
+    wrapper.style.width = '1120px';
+    wrapper.style.height = '100vh';
+    wrapper.style.overflow = 'hidden';
+    wrapper.style.opacity = '0';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.zIndex = '-9999';
+
     const reportContainer = document.createElement('div');
     reportContainer.style.width = '1120px'; // Better fit for A4 Landscape
     reportContainer.style.padding = '30px';
     reportContainer.dir = 'rtl';
     reportContainer.style.fontFamily = "'Cairo', sans-serif";
     reportContainer.style.backgroundColor = '#ffffff';
+    reportContainer.style.position = 'relative';
 
     const rows = chunk.map((y, idx) => `
       <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -312,7 +324,8 @@ export const generateFullReportPDF = async (youthList: any[], records: any[], cu
       </div>
     `;
 
-    document.body.appendChild(reportContainer);
+    wrapper.appendChild(reportContainer);
+    document.body.appendChild(wrapper);
     
     // Wait a brief moment for the DOM to update and fonts to render
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -322,12 +335,8 @@ export const generateFullReportPDF = async (youthList: any[], records: any[], cu
       useCORS: true,
       logging: false,
       windowWidth: 1120,
-      onclone: (clonedDoc) => {
-        const clonedContainer = clonedDoc.getElementById('pdf-container');
-        if (clonedContainer) {
-          clonedContainer.style.display = 'block';
-        }
-      }
+      scrollY: 0,
+      scrollX: 0
     });
     const imgData = canvas.toDataURL('image/png');
     
@@ -340,7 +349,7 @@ export const generateFullReportPDF = async (youthList: any[], records: any[], cu
     
     pdf.addImage(imgData, 'PNG', 0, 0, width, height);
     
-    document.body.removeChild(reportContainer);
+    document.body.removeChild(wrapper);
   }
   
   const fileName = customTitle ? `دليل_بيانات_الشباب_${customTitle.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('ar-EG')}.pdf` : `دليل_بيانات_الشباب_${new Date().toLocaleDateString('ar-EG')}.pdf`;
