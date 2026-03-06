@@ -8,7 +8,7 @@ import {
   Calendar, Award, LogOut, Hash, Check, 
   TrendingUp, Star, FileDown, Loader2, UserCircle, Phone, MapPin
 } from 'lucide-react';
-import { formatDateArabic, getActiveFriday } from '../constants';
+import { formatDateArabic, getActiveFriday, getAllFridaysSinceStart } from '../constants';
 
 export const ServantProfile: React.FC = () => {
   const { id } = useParams();
@@ -42,9 +42,12 @@ export const ServantProfile: React.FC = () => {
   const loadDetailedStats = (found: Servant) => {
     const allRecords = storageService.getServantAttendance().filter(r => r.servantId === found.id);
     const history = [];
-    let tempDate = new Date(getActiveFriday());
-    for (let i = 0; i < 12; i++) {
-      const dateStr = tempDate.toISOString().split('T')[0];
+    
+    // Get all Fridays since system start
+    const fridays = getAllFridaysSinceStart();
+    
+    // Generate history for each Friday
+    for (const dateStr of fridays) {
       const record = allRecords.find(r => r.date === dateStr);
       const isPresent = record && (record.liturgy || record.meeting || record.preparation);
       
@@ -54,8 +57,8 @@ export const ServantProfile: React.FC = () => {
         status: isPresent ? 'present' : 'absent',
         record: record || { liturgy: false, meeting: false, preparation: false }
       });
-      tempDate.setDate(tempDate.getDate() - 7);
     }
+    
     setWeeklyHistory(history);
     
     const servantVisitations = storageService.getVisitations().filter(v => v.servantId === found.id);

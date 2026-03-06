@@ -404,7 +404,7 @@ export const SpecialFollowUp: React.FC = () => {
               <th className="px-6 py-4 text-center">قداس</th>
               <th className="px-6 py-4 text-center">اجتماع</th>
               <th className="px-6 py-4 text-center">تحضير</th>
-              <th className="px-6 py-4 text-center">الافتقاد</th>
+              <th className="px-6 py-4 text-right">الافتقاد</th>
               <th className="px-6 py-4 text-center">ملاحظات</th>
               <th className="px-6 py-4 text-center">الحالة</th>
             </tr>
@@ -416,17 +416,11 @@ export const SpecialFollowUp: React.FC = () => {
               const isMeeting = record?.meeting || false;
               const isPreparation = record?.preparation || false;
               
-              // Find visitations for this servant in the week of selectedDate
-              // A week is defined as selectedDate (Friday) and the 6 days before it
-              const weekStart = new Date(selectedDate);
-              weekStart.setDate(weekStart.getDate() - 6);
-              const weekStartStr = weekStart.toISOString().split('T')[0];
-              
-              const servantVisits = visitations.filter(v => 
-                v.servantId === servant.id && 
-                v.date >= weekStartStr && 
-                v.date <= selectedDate
-              );
+              // Find the latest 3 visitations for this servant
+              const servantVisits = visitations
+                .filter(v => v.servantId === servant.id)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .slice(0, 3);
 
               return (
                 <tr key={servant.id} className="hover:bg-slate-50 transition-colors">
@@ -481,26 +475,49 @@ export const SpecialFollowUp: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-3">
                       <button 
                         onClick={() => {
                           setActiveServantId(servant.id);
                           setIsAddingVisitation(true);
                         }}
-                        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs font-black ${servantVisits.length > 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-400'}`}
+                        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs font-black shrink-0 ${servantVisits.length > 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
                       >
                         <Heart size={14} className={servantVisits.length > 0 ? 'fill-amber-500' : ''} />
                         {servantVisits.length > 0 ? `افتقد ${servantVisits.length}` : 'تسجيل افتقاد'}
                       </button>
                       {servantVisits.length > 0 && (
-                        <div className="flex flex-wrap justify-center gap-1 max-w-[180px]">
+                        <div className="flex flex-wrap gap-2">
                           {servantVisits.map(v => {
                             const y = youth.find(item => item.id === v.youthId);
-                            const visitDay = new Date(v.date).toLocaleDateString('ar-EG', { weekday: 'short' });
+                            const visitDateObj = new Date(v.date);
+                            const visitDay = visitDateObj.toLocaleDateString('ar-EG', { weekday: 'long' });
+                            const visitDate = visitDateObj.toLocaleDateString('ar-EG');
                             return (
-                              <span key={v.id} className="text-[8px] bg-white border px-1 rounded text-slate-500 truncate max-w-[80px]" title={`${y?.name} - ${visitDay}`}>
-                                {y?.name.split(' ')[0]} ({visitDay})
-                              </span>
+                              <div key={v.id} className="bg-white border border-amber-100 p-2 rounded-xl flex items-center gap-3 group shadow-sm hover:shadow-md transition-all min-w-[160px]">
+                                <div className="flex flex-col items-start text-right flex-1">
+                                  <span className="text-xs font-bold text-slate-700 truncate max-w-[120px]" title={y?.name}>
+                                    {y?.name}
+                                  </span>
+                                  <span className="text-[10px] font-black text-amber-600 mt-0.5">
+                                    {visitDay}، {visitDate}
+                                  </span>
+                                </div>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm('هل أنت متأكد من حذف هذا الافتقاد؟')) {
+                                      const newVisits = visitations.filter(visit => visit.id !== v.id);
+                                      storageService.saveVisitations(newVisits);
+                                      loadData();
+                                    }
+                                  }}
+                                  className="text-rose-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-rose-50 rounded-lg shrink-0"
+                                  title="حذف الافتقاد"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
@@ -564,11 +581,27 @@ export const SpecialFollowUp: React.FC = () => {
                     <input 
                       type="text"
                       placeholder="ابحث عن الشاب بالاسم أو الكود..."
-                      className="w-full pr-12 pl-6 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold"
+                      className="w-full pr-12 pl-12 py-3 rounded-xl border border-slate-200 outline-none focus:border-amber-500 font-bold"
                       value={youthSearch}
-                      onChange={e => setYouthSearch(e.target.value)}
+                      onChange={e => {
+                        setYouthSearch(e.target.value);
+                        if (visitationForm.youthId) {
+                          setVisitationForm({...visitationForm, youthId: ''});
+                        }
+                      }}
                     />
-                    {youthSearch && (
+                    {visitationForm.youthId && (
+                      <button 
+                        onClick={() => {
+                          setYouthSearch('');
+                          setVisitationForm({...visitationForm, youthId: ''});
+                        }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-400 hover:text-rose-600 bg-rose-50 p-1 rounded-full transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                    {youthSearch && !visitationForm.youthId && (
                       <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-20 max-h-48 overflow-y-auto p-2">
                         {youth
                           .filter(y => y.name.includes(youthSearch) || y.code.includes(youthSearch))
@@ -668,6 +701,31 @@ export const SpecialFollowUp: React.FC = () => {
                     className="flex-1 py-4 bg-amber-600 text-white rounded-2xl font-black shadow-lg hover:bg-amber-700 transition-all flex items-center justify-center gap-2"
                   >
                     <Check size={20} /> تأكيد التسجيل
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (!activeServantId || !visitationForm.youthId) {
+                        alert('يرجى اختيار الشاب');
+                        return;
+                      }
+                      const newVisit: Visitation = {
+                        id: uuidv4(),
+                        servantId: activeServantId,
+                        youthId: visitationForm.youthId,
+                        date: visitationForm.date,
+                        notes: visitationForm.notes,
+                        timestamp: Date.now()
+                      };
+                      setLoading(true);
+                      storageService.addVisitation(newVisit);
+                      setVisitationForm({ youthId: '', notes: '', date: visitationForm.date });
+                      setYouthSearch('');
+                      setLoading(false);
+                      loadData();
+                    }}
+                    className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={20} /> حفظ وإضافة آخر
                   </button>
                   <button 
                     onClick={() => {
@@ -822,9 +880,10 @@ export const SpecialFollowUp: React.FC = () => {
                     <Hash className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                     <input 
                       placeholder="الكود"
-                      readOnly
-                      className="w-full px-5 pr-10 py-3 rounded-xl border border-slate-100 bg-slate-50 outline-none font-black text-slate-500 cursor-not-allowed"
+                      readOnly={!!editingId} // Make it read-only if editing
+                      className={`w-full px-5 pr-10 py-3 rounded-xl border border-slate-100 outline-none font-black text-slate-500 ${editingId ? 'bg-slate-50 cursor-not-allowed' : 'focus:border-blue-500 bg-white'}`}
                       value={formData.code}
+                      onChange={e => !editingId && setFormData({...formData, code: e.target.value})}
                     />
                   </div>
                 </div>
@@ -954,10 +1013,31 @@ export const SpecialFollowUp: React.FC = () => {
                           {isPreparation ? <Check size={16} /> : <X size={16} />}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${servantVisits.length > 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}>
-                          {servantVisits.length > 0 ? `${servantVisits.length} افتقاد` : 'لا يوجد'}
-                        </span>
+                      <td className="px-6 py-4">
+                        {servantVisits.length > 0 ? (
+                          <div className="flex flex-col gap-2 w-full max-w-[220px] mx-auto">
+                            {servantVisits.map(v => {
+                              const y = youth.find(item => item.id === v.youthId);
+                              const visitDateObj = new Date(v.date);
+                              const visitDay = visitDateObj.toLocaleDateString('ar-EG', { weekday: 'long' });
+                              const visitDate = visitDateObj.toLocaleDateString('ar-EG');
+                              return (
+                                <div key={v.id} className="bg-white border border-amber-100 p-2 rounded-xl flex flex-col items-start text-right shadow-sm">
+                                  <span className="text-xs font-bold text-slate-700 truncate max-w-[150px]" title={y?.name}>
+                                    {y?.name}
+                                  </span>
+                                  <span className="text-[10px] font-black text-amber-600 mt-0.5">
+                                    {visitDay}، {visitDate}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">
+                            لا يوجد
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <p className="text-xs text-slate-500 font-bold">{record?.notes || '—'}</p>
