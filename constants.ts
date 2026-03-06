@@ -248,6 +248,11 @@ export const generateMarathonFinalReport = async (marathon: any, group: any, all
 };
 
 export const generateFullReportPDF = async (youthList: any[], records: any[], customTitle?: string) => {
+  if (!youthList || youthList.length === 0) {
+    alert('لا يوجد بيانات لعرضها في التقرير');
+    return;
+  }
+
   const pdf = new jsPDF('l', 'mm', 'a4');
   const CHUNK_SIZE = 22; // Increased to fill the page better in landscape
   
