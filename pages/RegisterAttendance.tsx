@@ -272,7 +272,6 @@ export const RegisterAttendance: React.FC = () => {
                   <>
                     <StatusToggle active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(person.id, 'bibleReading', !record?.bibleReading, isServant)} />
                     <StatusToggle active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(person.id, 'confession', !record?.confession, isServant)} />
-                    <StatusToggle active={record?.visitation} icon={Heart} label="افتقاد" color="rose" onClick={() => updateRecordField(person.id, 'visitation', !record?.visitation, isServant)} />
                   </>
                 )}
               </div>
@@ -334,27 +333,6 @@ export const RegisterAttendance: React.FC = () => {
                     <DateInput 
                       value={record?.confessionDate}
                       onChange={(val) => updateRecordField(person.id, 'confessionDate', val, isServant)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <UserCheck size={14} className="text-rose-500" /> مين افتقده؟
-                    </label>
-                    <input 
-                      type="text" 
-                      placeholder="اسم الخادم..."
-                      value={record?.visitationDetails?.visitorName || ''} 
-                      onChange={(e) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitorName: e.target.value }, isServant)}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-rose-400"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <Calendar size={14} className="text-rose-500" /> تاريخ الافتقاد
-                    </label>
-                    <DateInput 
-                      value={record?.visitationDetails?.visitDate}
-                      onChange={(val) => updateRecordField(person.id, 'visitationDetails', { ...record?.visitationDetails, visitDate: val }, isServant)}
                     />
                   </div>
                 </div>

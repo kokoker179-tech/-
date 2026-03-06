@@ -36,6 +36,7 @@ export const YouthList: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'percentage'>('name');
+  const [filterGrade, setFilterGrade] = useState<string>('all');
 
   const loadData = () => {
     setYouth(storageService.getYouth());
@@ -198,9 +199,18 @@ export const YouthList: React.FC = () => {
   };
 
   const filteredAndSorted = youthWithStats
+    .filter(y => filterGrade === 'all' || y.grade === filterGrade)
     .filter(y => y.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
       if (sortBy === 'percentage') return b.stats.percentage - a.stats.percentage;
+      
+      // Sort by grade first, then alphabetically
+      const gradeOrder = { 'أولى ثانوي': 1, 'تانية ثانوي': 2, 'تالتة ثانوي': 3 };
+      const gradeA = gradeOrder[a.grade as keyof typeof gradeOrder] || 4;
+      const gradeB = gradeOrder[b.grade as keyof typeof gradeOrder] || 4;
+      
+      if (gradeA !== gradeB) return gradeA - gradeB;
+      
       return a.name.localeCompare(b.name, 'ar');
     });
 
@@ -216,7 +226,7 @@ export const YouthList: React.FC = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
         <div>
             <h2 className="text-4xl font-black text-slate-800 dark:text-white">دليل الشباب الذكي</h2>
-            <p className="text-slate-500 font-bold mt-1">إجمالي المقيدين: {youth.length} شاب</p>
+            <p className="text-slate-500 font-bold mt-1">إجمالي المقيدين: {filteredAndSorted.length} شاب</p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
@@ -229,6 +239,16 @@ export const YouthList: React.FC = () => {
                 />
             </div>
             <select 
+              value={filterGrade} 
+              onChange={(e: any) => setFilterGrade(e.target.value)}
+              className="px-6 py-4 rounded-2xl border-2 border-slate-100 bg-white font-black text-sm shadow-sm outline-none cursor-pointer"
+            >
+              <option value="all">كل المراحل</option>
+              <option value="أولى ثانوي">أولى ثانوي</option>
+              <option value="تانية ثانوي">تانية ثانوي</option>
+              <option value="تالتة ثانوي">تالتة ثانوي</option>
+            </select>
+            <select 
               value={sortBy} 
               onChange={(e: any) => setSortBy(e.target.value)}
               className="px-6 py-4 rounded-2xl border-2 border-slate-100 bg-white font-black text-sm shadow-sm outline-none cursor-pointer"
@@ -237,10 +257,15 @@ export const YouthList: React.FC = () => {
               <option value="percentage">ترتيب بالالتزام</option>
             </select>
             <button 
-              onClick={() => generateFullReportPDF(filteredAndSorted, records)}
+              onClick={async () => {
+                setIsGenerating(true);
+                const title = filterGrade === 'all' ? undefined : filterGrade;
+                await generateFullReportPDF(filteredAndSorted, records, title);
+                setIsGenerating(false);
+              }}
               className="px-6 py-4 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2"
             >
-              <Download size={16} /> تحميل تقرير الكل
+              <Download size={16} /> تحميل تقرير {filterGrade === 'all' ? 'الكل' : filterGrade}
             </button>
         </div>
       </div>

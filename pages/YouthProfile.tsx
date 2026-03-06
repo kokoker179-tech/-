@@ -396,10 +396,41 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
 
       {marathonPoints.length > 0 && (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden mb-10">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-amber-50/50 dark:bg-amber-900/10">
+          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 bg-amber-50/50 dark:bg-amber-900/10">
             <h3 className="text-xl font-black text-amber-800 dark:text-amber-300 flex items-center gap-3">
               <Star className="text-amber-500" /> سجل نقاط الماراثون
             </h3>
+            {(() => {
+              const activeMarathon = marathons.find(m => m.active);
+              if (activeMarathon) {
+                const myGroup = groups.find(g => activeMarathon.groupIds.includes(g.id) && g.youthIds.includes(youth.id));
+                if (myGroup) {
+                  const allPoints = storageService.getMarathonActivityPoints();
+                  const groupPoints = allPoints
+                    .filter(p => p.marathonId === activeMarathon.id && myGroup.youthIds.includes(p.youthId))
+                    .reduce((sum, p) => sum + p.points, 0);
+                  
+                  const allYouth = storageService.getYouth();
+                  const groupMembers = myGroup.youthIds
+                    .map(id => allYouth.find(y => y.id === id)?.name)
+                    .filter(Boolean)
+                    .join('، ');
+
+                  return (
+                    <div className="text-right">
+                      <div className="flex items-center justify-end gap-2 mb-1">
+                        <span className="text-sm font-black text-amber-800 dark:text-amber-300">المجموعة: {myGroup.name}</span>
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-black">{groupPoints} نقطة</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-500 max-w-xs leading-relaxed">
+                        الأعضاء: {groupMembers}
+                      </p>
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-right">
@@ -428,55 +459,6 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {visitations.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-rose-50/50 dark:bg-rose-900/10">
-            <h3 className="text-xl font-black text-rose-800 dark:text-rose-300 flex items-center gap-3">
-              <TrendingUp className="text-rose-500" /> سجل الافتقاد والمتابعة
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-right">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-8 py-4">التاريخ</th>
-                  <th className="px-8 py-4">الخادم</th>
-                  <th className="px-8 py-4">ملاحظات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {visitations.map((v, idx) => {
-                  const s = servants.find(servant => servant.id === v.servantId);
-                  const dayName = new Date(v.date).toLocaleDateString('ar-EG', { weekday: 'long' });
-                  return (
-                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-8 py-5">
-                        <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{formatDateArabic(v.date)}</p>
-                        <p className="text-[10px] text-rose-600 font-bold">{dayName}</p>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-xs">
-                            {s?.name[0] || '?'}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{s?.name || 'خادم غير معروف'}</p>
-                            <p className="text-[10px] text-slate-400 font-black">قام بالافتقاد</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <p className="text-xs font-bold text-slate-500">{v.notes || 'لا توجد ملاحظات'}</p>
-                      </td>
-                    </tr>
-                  );
-                })}
               </tbody>
             </table>
           </div>

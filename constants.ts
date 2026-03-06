@@ -247,7 +247,7 @@ export const generateMarathonFinalReport = async (marathon: any, group: any, all
   document.body.removeChild(reportContainer);
 };
 
-export const generateFullReportPDF = async (youthList: any[], records: any[]) => {
+export const generateFullReportPDF = async (youthList: any[], records: any[], customTitle?: string) => {
   const pdf = new jsPDF('l', 'mm', 'a4');
   const CHUNK_SIZE = 22; // Increased to fill the page better in landscape
   
@@ -272,10 +272,12 @@ export const generateFullReportPDF = async (youthList: any[], records: any[]) =>
       </tr>
     `).join('');
 
+    const titleText = customTitle ? `دليل بيانات الشباب - ${customTitle}` : 'دليل بيانات الشباب الكامل';
+
     reportContainer.innerHTML = `
       <div style="border: 4px solid #2563eb; padding: 20px; border-radius: 20px; min-height: 750px; display: flex; flex-direction: column;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #2563eb; margin: 0; font-size: 32px;">دليل بيانات الشباب الكامل</h1>
+          <h1 style="color: #2563eb; margin: 0; font-size: 32px;">${titleText}</h1>
           <p style="font-weight: bold; color: #64748b; font-size: 18px;">كنيسة الملاك روفائيل - اجتماع ثانوي بنين</p>
           <div style="display: flex; justify-content: space-between; margin-top: 10px; color: #94a3b8; font-size: 14px; font-weight: bold;">
             <span>تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
@@ -322,7 +324,8 @@ export const generateFullReportPDF = async (youthList: any[], records: any[]) =>
     document.body.removeChild(reportContainer);
   }
   
-  pdf.save(`دليل_بيانات_الشباب_${new Date().toLocaleDateString('ar-EG')}.pdf`);
+  const fileName = customTitle ? `دليل_بيانات_الشباب_${customTitle.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('ar-EG')}.pdf` : `دليل_بيانات_الشباب_${new Date().toLocaleDateString('ar-EG')}.pdf`;
+  pdf.save(fileName);
 };
 
 export const generateDetailedYouthReportPDF = async (youth: any, history: any[], points: any[]) => {
