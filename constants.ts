@@ -313,17 +313,31 @@ export const generateFullReportPDF = async (youthList: any[], records: any[], cu
     `;
 
     document.body.appendChild(reportContainer);
+    
+    // Wait a brief moment for the DOM to update and fonts to render
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const canvas = await html2canvas(reportContainer, { 
       scale: 2,
       useCORS: true,
-      logging: false
+      logging: false,
+      windowWidth: 1120,
+      onclone: (clonedDoc) => {
+        const clonedContainer = clonedDoc.getElementById('pdf-container');
+        if (clonedContainer) {
+          clonedContainer.style.display = 'block';
+        }
+      }
     });
     const imgData = canvas.toDataURL('image/png');
     
-    if (i > 0) pdf.addPage();
-    
     const width = pdf.internal.pageSize.getWidth();
     const height = (canvas.height * width) / canvas.width;
+    
+    if (i > 0) {
+      pdf.addPage();
+    }
+    
     pdf.addImage(imgData, 'PNG', 0, 0, width, height);
     
     document.body.removeChild(reportContainer);
