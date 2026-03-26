@@ -37,13 +37,13 @@ export const MarathonPage: React.FC = () => {
   const [youthSearch, setYouthSearch] = useState('');
   const [selectedWeek, setSelectedWeek] = useState(getActiveFriday());
 
-  const loadData = () => {
-    const m = storageService.getMarathons();
+  const loadData = async () => {
+    const m = await storageService.getMarathons();
     setMarathons(m);
-    setGroups(storageService.getMarathonGroups());
-    setYouth(storageService.getYouth());
-    setAttendance(storageService.getAttendance());
-    setActivityPoints(storageService.getMarathonActivityPoints());
+    setGroups(await storageService.getMarathonGroups());
+    setYouth(await storageService.getYouth());
+    setAttendance(await storageService.getAttendance());
+    setActivityPoints(await storageService.getMarathonActivityPoints());
     
     // If there's an active marathon, select it
     if (!activeMarathon && m.length > 0) {
@@ -151,16 +151,16 @@ export const MarathonPage: React.FC = () => {
     setNewMarathonData({ name: '', startDay: '', startMonth: '', endDay: '', endMonth: '' });
   };
 
-  const handleSaveMarathon = () => {
+  const handleSaveMarathon = async () => {
     if (activeMarathon) {
-      storageService.updateMarathon(activeMarathon);
+      await storageService.updateMarathon(activeMarathon);
       setIsEditing(false);
     }
   };
 
-  const handleAddGroup = () => {
+  const handleAddGroup = async () => {
     if (!activeMarathon) return;
-    const newGroup = storageService.addMarathonGroup(activeMarathon.id, {
+    const newGroup = await storageService.addMarathonGroup(activeMarathon.id, {
       name: 'مجموعة جديدة',
       servantName: 'اسم الخادم',
       youthIds: []
@@ -168,16 +168,16 @@ export const MarathonPage: React.FC = () => {
     setEditingGroup(newGroup);
   };
 
-  const handleUpdateGroup = (group: MarathonGroup) => {
-    storageService.updateMarathonGroup(group);
+  const handleUpdateGroup = async (group: MarathonGroup) => {
+    await storageService.updateMarathonGroup(group);
     setEditingGroup(null);
   };
 
-  const syncAttendancePoints = () => {
+  const syncAttendancePoints = async () => {
     if (!activeMarathon) return;
     
     const newPoints: MarathonActivityPoints[] = [];
-    const currentPoints = storageService.getMarathonActivityPoints();
+    const currentPoints = await storageService.getMarathonActivityPoints();
     
     // Filter out existing automatic points to avoid duplicates
     const manualPoints = currentPoints.filter(p => 
@@ -191,6 +191,7 @@ export const MarathonPage: React.FC = () => {
         const addPoint = (activity: keyof MarathonPointSystem, reason: string) => {
           if (record[activity as keyof typeof record]) {
              newPoints.push({
+              id: uuidv4(),
               marathonId: activeMarathon.id,
               youthId: record.youthId,
               weekDate: record.date,
@@ -214,16 +215,16 @@ export const MarathonPage: React.FC = () => {
       }
     });
 
-    storageService.saveMarathonActivityPoints([...manualPoints, ...newPoints]);
+    await storageService.saveMarathonActivityPoints([...manualPoints, ...newPoints]);
     alert('تم مزامنة نقاط الحضور بنجاح!');
   };
 
-  const handleEndMarathon = () => {
+  const handleEndMarathon = async () => {
     if (!activeMarathon || groupStats.length === 0) return;
     if (window.confirm('هل أنت متأكد من إنهاء الماراثون؟ سيتم تحديد الفائز بناءً على النقاط الحالية.')) {
       const winner = groupStats[0];
       const updated = { ...activeMarathon, active: false, winnerGroupId: winner.id };
-      storageService.updateMarathon(updated);
+      await storageService.updateMarathon(updated);
       setActiveMarathon(updated);
     }
   };
@@ -331,10 +332,11 @@ export const MarathonPage: React.FC = () => {
                         </div>
                         <div className="flex gap-1">
                           <button 
-                            onClick={() => {
+                            onClick={async () => {
                               const activity = 'liturgy';
                               const points = activeMarathon!.pointSystem[activity];
-                              storageService.addMarathonActivityPoints({
+                              await storageService.addMarathonActivityPoints({
+                                id: uuidv4(),
                                 marathonId: activeMarathon!.id,
                                 youthId: y.id,
                                 weekDate: selectedWeek,
@@ -343,6 +345,7 @@ export const MarathonPage: React.FC = () => {
                                 reason: 'حضور القداس الإلهي',
                                 timestamp: Date.now()
                               });
+                              loadData();
                             }}
                             className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'liturgy') ? 'bg-amber-600 text-white shadow-lg' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}
                             title="قداس"
@@ -350,10 +353,11 @@ export const MarathonPage: React.FC = () => {
                             <Church size={16} />
                           </button>
                           <button 
-                            onClick={() => {
+                            onClick={async () => {
                               const activity = 'communion';
                               const points = activeMarathon!.pointSystem[activity];
-                              storageService.addMarathonActivityPoints({
+                              await storageService.addMarathonActivityPoints({
+                                id: uuidv4(),
                                 marathonId: activeMarathon!.id,
                                 youthId: y.id,
                                 weekDate: selectedWeek,
@@ -362,6 +366,7 @@ export const MarathonPage: React.FC = () => {
                                 reason: 'التناول من الأسرار المقدسة',
                                 timestamp: Date.now()
                               });
+                              loadData();
                             }}
                             className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'communion') ? 'bg-rose-600 text-white shadow-lg' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
                             title="تناول"
@@ -369,10 +374,11 @@ export const MarathonPage: React.FC = () => {
                             <Wine size={16} />
                           </button>
                           <button 
-                            onClick={() => {
+                            onClick={async () => {
                               const activity = 'confession';
                               const points = activeMarathon!.pointSystem[activity];
-                              storageService.addMarathonActivityPoints({
+                              await storageService.addMarathonActivityPoints({
+                                id: uuidv4(),
                                 marathonId: activeMarathon!.id,
                                 youthId: y.id,
                                 weekDate: selectedWeek,
@@ -381,6 +387,7 @@ export const MarathonPage: React.FC = () => {
                                 reason: 'ممارسة سر الاعتراف',
                                 timestamp: Date.now()
                               });
+                              loadData();
                             }}
                             className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'confession') ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                             title="اعتراف"
@@ -388,11 +395,12 @@ export const MarathonPage: React.FC = () => {
                             <ShieldCheck size={16} />
                           </button>
                           <button 
-                            onClick={() => {
+                            onClick={async () => {
                               const activity = 'bibleReading';
                               // @ts-ignore - bibleReading might be in pointSystem or use a default
                               const points = activeMarathon!.pointSystem['bibleReading'] || 10;
-                              storageService.addMarathonActivityPoints({
+                              await storageService.addMarathonActivityPoints({
+                                id: uuidv4(),
                                 marathonId: activeMarathon!.id,
                                 youthId: y.id,
                                 weekDate: selectedWeek,
@@ -401,6 +409,7 @@ export const MarathonPage: React.FC = () => {
                                 reason: 'قراءة الكتاب المقدس',
                                 timestamp: Date.now()
                               });
+                              loadData();
                             }}
                             className={`p-2 rounded-xl transition-all ${yWeekPoints.some(p => p.activity === 'bibleReading') ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
                             title="إنجيل"
@@ -408,13 +417,14 @@ export const MarathonPage: React.FC = () => {
                             <BookOpen size={16} />
                           </button>
                           <button 
-                            onClick={() => {
+                            onClick={async () => {
                               const activity = window.prompt('اختر النشاط:\n(weeklyCompetition, memorizationPart, exodusCompetition, fasting, tasbeha)');
                               if (activity && Object.keys(activeMarathon!.pointSystem).includes(activity)) {
                                 const points = activeMarathon!.pointSystem[activity as keyof MarathonPointSystem];
                                 const reason = window.prompt(`إضافة نقاط لـ ${y.name}\nالنشاط: ${activity}\nالنقاط: ${points}\nأدخل السبب:`, 'مشاركة متميزة');
                                 if (reason !== null) {
-                                  storageService.addMarathonActivityPoints({
+                                  await storageService.addMarathonActivityPoints({
+                                    id: uuidv4(),
                                     marathonId: activeMarathon!.id,
                                     youthId: y.id,
                                     weekDate: selectedWeek,
@@ -423,6 +433,7 @@ export const MarathonPage: React.FC = () => {
                                     reason: reason || 'مشاركة متميزة',
                                     timestamp: Date.now()
                                   });
+                                  loadData();
                                 }
                               } else if (activity) {
                                 alert('نشاط غير صالح');

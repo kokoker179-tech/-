@@ -57,15 +57,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleServantSubmit = (e: React.FormEvent) => {
+  const handleServantSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (servantCode.length < 5) return;
     
     setLoading(true);
     setError(null);
 
-    setTimeout(() => {
-      const allServants = storageService.getServants();
+    setTimeout(async () => {
+      const allServants = await storageService.getServants();
       const found = allServants.find(s => s.code === servantCode);
       
       if (found) {
@@ -80,15 +80,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }, 800);
   };
 
-  const handleYouthSubmit = (e: React.FormEvent) => {
+  const handleYouthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (youthCode.length < 5) return;
     
     setLoading(true);
     setError(null);
 
-    setTimeout(() => {
-      const allYouth = storageService.getYouth();
+    setTimeout(async () => {
+      const allYouth = await storageService.getYouth();
       const found = allYouth.find(y => y.code === youthCode);
       
       if (found) {

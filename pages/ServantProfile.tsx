@@ -25,22 +25,25 @@ export const ServantProfile: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    const allServants = storageService.getServants();
-    const found = allServants.find(s => s.id === id);
-    if (found) {
-      setServant(found);
-      loadDetailedStats(found);
-      
-      const allVisitations = storageService.getVisitations();
-      setVisitations(allVisitations.filter(v => v.servantId === found.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      setYouth(storageService.getYouth());
-    } else {
-      navigate('/servants');
-    }
+    const fetchData = async () => {
+      const allServants = await storageService.getServants();
+      const found = allServants.find(s => s.id === id);
+      if (found) {
+        setServant(found);
+        await loadDetailedStats(found);
+        
+        const allVisitations = await storageService.getVisitations();
+        setVisitations(allVisitations.filter(v => v.servantId === found.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setYouth(await storageService.getYouth());
+      } else {
+        navigate('/servants');
+      }
+    };
+    fetchData();
   }, [id, navigate]);
 
-  const loadDetailedStats = (found: Servant) => {
-    const allRecords = storageService.getServantAttendance().filter(r => r.servantId === found.id);
+  const loadDetailedStats = async (found: Servant) => {
+    const allRecords = (await storageService.getServantAttendance()).filter(r => r.servantId === found.id);
     const history = [];
     
     // Get all Fridays since system start
@@ -61,7 +64,7 @@ export const ServantProfile: React.FC = () => {
     
     setWeeklyHistory(history);
     
-    const servantVisitations = storageService.getVisitations().filter(v => v.servantId === found.id);
+    const servantVisitations = (await storageService.getVisitations()).filter(v => v.servantId === found.id);
     
     setSummary({
       present: history.filter(h => h.status === 'present').length,

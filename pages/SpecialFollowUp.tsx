@@ -70,11 +70,13 @@ export const SpecialFollowUp: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const loadData = () => {
-    setServants(storageService.getServants());
-    setYouth(storageService.getYouth());
-    setServantAttendance(storageService.getServantAttendance());
-    setVisitations(storageService.getVisitations());
+  const loadData = async () => {
+    setLoading(true);
+    setServants(await storageService.getServants());
+    setYouth(await storageService.getYouth());
+    setServantAttendance(await storageService.getServantAttendance());
+    setVisitations(await storageService.getVisitations());
+    setLoading(false);
   };
 
   const currentAttendance = servantAttendance.filter(r => r.date === selectedDate);
@@ -96,7 +98,7 @@ export const SpecialFollowUp: React.FC = () => {
   }, []);
 
   const updateAttendance = async (servantId: string, field: 'liturgy' | 'meeting' | 'preparation' | 'notes', value: any) => {
-    const all = storageService.getServantAttendance();
+    const all = await storageService.getServantAttendance();
     const existingIdx = all.findIndex(r => r.servantId === servantId && r.date === selectedDate);
     
     if (existingIdx > -1) {
@@ -117,6 +119,7 @@ export const SpecialFollowUp: React.FC = () => {
     setLoading(true);
     await storageService.saveServantAttendance(all);
     setLoading(false);
+    await loadData();
   };
 
   const handleAddVisitation = async () => {
@@ -135,12 +138,13 @@ export const SpecialFollowUp: React.FC = () => {
     };
 
     setLoading(true);
-    storageService.addVisitation(newVisit);
+    await storageService.addVisitation(newVisit);
     setIsAddingVisitation(false);
     setVisitationForm({ youthId: '', notes: '', date: new Date().toISOString().split('T')[0] });
     setYouthSearch('');
     setActiveServantId(null);
     setLoading(false);
+    await loadData();
   };
 
   const handleSaveServant = async () => {
@@ -165,10 +169,11 @@ export const SpecialFollowUp: React.FC = () => {
         address: formData.address || '',
         addedAt: Date.now()
       };
-      storageService.addServant(newServant);
+      await storageService.addServant(newServant);
     }
     setFormData({ name: '', role: 'خادم', phone: '', code: '', responsibility: '', image: '', address: '' });
     setIsAdding(false);
+    await loadData();
   };
 
   const renderDashboard = () => {
@@ -794,7 +799,7 @@ export const SpecialFollowUp: React.FC = () => {
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => { setEditingId(s.id); setFormData(s); setIsAdding(true); }} className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><Edit3 size={16}/></button>
-                  <button onClick={() => { if(window.confirm('حذف الخادم؟')) storageService.deleteServant(s.id); }} className="p-2 text-slate-300 hover:text-rose-600 transition-colors"><Trash2 size={16}/></button>
+                  <button onClick={async () => { if(window.confirm('حذف الخادم؟')) { await storageService.deleteServant(s.id); await loadData(); } }} className="p-2 text-slate-300 hover:text-rose-600 transition-colors"><Trash2 size={16}/></button>
                 </div>
               </div>
               <Link to={`/servant-profile/${s.id}`}>

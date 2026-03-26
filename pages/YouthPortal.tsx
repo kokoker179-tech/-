@@ -11,32 +11,30 @@ export const YouthPortal: React.FC = () => {
   const [error, setError] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (code.length < 5) return;
 
     setLoading(true);
     setError(false);
 
-    setTimeout(() => {
-      const allYouth = storageService.getYouth();
-      const found = allYouth.find(y => y.code === code);
+    const allYouth = await storageService.getYouth();
+    const found = allYouth.find(y => y.code === code);
 
-      if (found) {
-        // توجيه لبروفايل الشاب
-        navigate(`/youth-profile/${found.id}`);
+    if (found) {
+      // توجيه لبروفايل الشاب
+      navigate(`/youth-profile/${found.id}`);
+      setCode('');
+      setLoading(false);
+    } else {
+      setError(true);
+      setLoading(false);
+      // مسح الكود عند الخطأ ليعيد الشاب المحاولة
+      setTimeout(() => {
+        setError(false);
         setCode('');
-        setLoading(false);
-      } else {
-        setError(true);
-        setLoading(false);
-        // مسح الكود عند الخطأ ليعيد الشاب المحاولة
-        setTimeout(() => {
-          setError(false);
-          setCode('');
-        }, 2000);
-      }
-    }, 600);
+      }, 2000);
+    }
   };
 
   const handleNumberClick = (num: string) => {

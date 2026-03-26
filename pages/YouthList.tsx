@@ -38,11 +38,11 @@ export const YouthList: React.FC = () => {
   const [sortBy, setSortBy] = useState<'name' | 'percentage'>('name');
   const [filterGrade, setFilterGrade] = useState<string>('all');
 
-  const loadData = () => {
-    setYouth(storageService.getYouth());
-    setRecords(storageService.getAttendance());
-    setMarathons(storageService.getMarathons());
-    setGroups(storageService.getMarathonGroups());
+  const loadData = async () => {
+    setYouth(await storageService.getYouth());
+    setRecords(await storageService.getAttendance());
+    setMarathons(await storageService.getMarathons());
+    setGroups(await storageService.getMarathonGroups());
   };
 
   useEffect(() => {
@@ -177,7 +177,7 @@ export const YouthList: React.FC = () => {
 
     const history = Array.from(historyMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const yPoints = storageService.getMarathonActivityPoints().filter(p => p.youthId === youth.id);
+    const yPoints = (await storageService.getMarathonActivityPoints()).filter(p => p.youthId === youth.id);
     await generateDetailedYouthReportPDF(youth, history, yPoints);
     setIsGenerating(false);
   };

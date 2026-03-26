@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UserPlus, Save, ArrowLeft, Camera, X, Hash, FileText, UploadCloud, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import { storageService } from '../services/storageService';
@@ -11,22 +11,13 @@ export const AddYouth: React.FC = () => {
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const config = storageService.getConfig();
   
-  const generateRandomCode = () => {
-    const existingCodes = storageService.getYouth().map(y => y.code);
-    let newCode = '';
-    do {
-      newCode = Math.floor(10000 + Math.random() * 90000).toString();
-    } while (existingCodes.includes(newCode));
-    return newCode;
-  };
-
   const [formData, setFormData] = useState({
     name: '',
     grade: config.grades[0] || 'غير محدد',
     phone: '',
     image: '',
     pdfDoc: '',
-    code: generateRandomCode(),
+    code: '',
     confessionFather: '',
     address: '',
     region: 'منطقة الكنيسة والتقسيم',
@@ -34,6 +25,19 @@ export const AddYouth: React.FC = () => {
     motherPhone: '',
     siblingsCount: 0
   });
+
+  useEffect(() => {
+    const generateCode = async () => {
+      const youth = await storageService.getYouth();
+      const existingCodes = youth.map(y => y.code);
+      let newCode = '';
+      do {
+        newCode = Math.floor(10000 + Math.random() * 90000).toString();
+      } while (existingCodes.includes(newCode));
+      setFormData(prev => ({ ...prev, code: newCode }));
+    };
+    generateCode();
+  }, []);
   const [success, setSuccess] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +83,7 @@ export const AddYouth: React.FC = () => {
       siblingsCount: formData.siblingsCount
     };
 
-    const currentYouth = storageService.getYouth();
+    const currentYouth = await storageService.getYouth();
     await storageService.saveYouth([...currentYouth, newYouth]);
 
     setSuccess(true);

@@ -73,17 +73,19 @@ export const RegisterAttendance: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const allFridays = getAllFridaysSinceStart();
   
-  const loadData = () => {
-    setYouth(storageService.getYouth());
-    setServants(storageService.getServants());
-    const allRecords = storageService.getAttendance();
+  const loadData = async () => {
+    setLoading(true);
+    setYouth(await storageService.getYouth());
+    setServants(await storageService.getServants());
+    const allRecords = await storageService.getAttendance();
     setRecords(allRecords.filter(r => r.date === selectedDate));
     
-    const allMarathons = storageService.getMarathons();
+    const allMarathons = await storageService.getMarathons();
     setMarathons(allMarathons);
     const active = allMarathons.find(m => m.active);
     setActiveMarathon(active || null);
-    setMarathonGroups(storageService.getMarathonGroups());
+    setMarathonGroups(await storageService.getMarathonGroups());
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -137,7 +139,7 @@ export const RegisterAttendance: React.FC = () => {
       newRecord.tonia = false;
     }
 
-    const allRecords = storageService.getAttendance();
+    const allRecords = await storageService.getAttendance();
     const idx = allRecords.findIndex(r => (isServant ? r.servantId === personId : r.youthId === personId) && r.date === selectedDate);
     
     if (idx > -1) allRecords[idx] = newRecord;
@@ -151,8 +153,8 @@ export const RegisterAttendance: React.FC = () => {
       if (isInMarathon) {
         const pointSystem = activeMarathon.pointSystem;
         
-        const updatePoint = (activity: keyof typeof pointSystem, reason: string) => {
-          const points = storageService.getMarathonActivityPoints();
+        const updatePoint = async (activity: keyof typeof pointSystem, reason: string) => {
+          const points = await storageService.getMarathonActivityPoints();
           const filteredPoints = points.filter(p => 
             !(p.marathonId === activeMarathon.id && 
               p.youthId === personId && 
@@ -162,6 +164,7 @@ export const RegisterAttendance: React.FC = () => {
           
           if (value === true) {
             filteredPoints.push({
+              id: uuidv4(),
               marathonId: activeMarathon.id,
               youthId: personId,
               weekDate: selectedDate,
@@ -171,18 +174,18 @@ export const RegisterAttendance: React.FC = () => {
               timestamp: Date.now()
             });
           }
-          storageService.saveMarathonActivityPoints(filteredPoints);
+          await storageService.saveMarathonActivityPoints(filteredPoints);
         };
 
-        if (field === 'liturgy') updatePoint('liturgy', 'حضور القداس الإلهي');
-        if (field === 'meeting') updatePoint('meeting', 'حضور الاجتماع الأسبوعي');
-        if (field === 'confession') updatePoint('confession', 'ممارسة سر الاعتراف');
-        if (field === 'tasbeha') updatePoint('tasbeha', 'حضور التسبحة');
-        if (field === 'communion') updatePoint('communion', 'التناول من الأسرار المقدسة');
-        if (field === 'fasting') updatePoint('fasting', 'الالتزام بالصوم');
-        if (field === 'memorizationPart') updatePoint('memorizationPart', 'تسميع جزء الحفظ');
-        if (field === 'exodusCompetition') updatePoint('exodusCompetition', 'مسابقة سفر الخروج');
-        if (field === 'weeklyCompetition') updatePoint('weeklyCompetition', 'الفوز في مسابقة الجمعة');
+        if (field === 'liturgy') await updatePoint('liturgy', 'حضور القداس الإلهي');
+        if (field === 'meeting') await updatePoint('meeting', 'حضور الاجتماع الأسبوعي');
+        if (field === 'confession') await updatePoint('confession', 'ممارسة سر الاعتراف');
+        if (field === 'tasbeha') await updatePoint('tasbeha', 'حضور التسبحة');
+        if (field === 'communion') await updatePoint('communion', 'التناول من الأسرار المقدسة');
+        if (field === 'fasting') await updatePoint('fasting', 'الالتزام بالصوم');
+        if (field === 'memorizationPart') await updatePoint('memorizationPart', 'تسميع جزء الحفظ');
+        if (field === 'exodusCompetition') await updatePoint('exodusCompetition', 'مسابقة سفر الخروج');
+        if (field === 'weeklyCompetition') await updatePoint('weeklyCompetition', 'الفوز في مسابقة الجمعة');
       }
     }
 

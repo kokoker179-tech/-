@@ -123,6 +123,7 @@ export interface Marathon {
 }
 
 export interface MarathonActivityPoints {
+  id: string;
   marathonId: string;
   youthId: string;
   weekDate: string; // YYYY-MM-DD (the Friday of the week)

@@ -29,25 +29,28 @@ export const EditYouth: React.FC = () => {
   const [originalYouth, setOriginalYouth] = useState<Youth | null>(null);
 
   useEffect(() => {
-    const youthList = storageService.getYouth();
-    const found = youthList.find(y => y.id === id);
-    if (found) {
-      setOriginalYouth(found);
-      setFormData({
-        name: found.name,
-        grade: found.grade,
-        phone: found.phone,
-        image: found.image || '',
-        pdfDoc: found.pdfDoc || '',
-        address: found.address || '',
-        region: found.region || 'منطقة الكنيسة',
-        fatherPhone: found.fatherPhone || '',
-        motherPhone: found.motherPhone || '',
-        siblingsCount: found.siblingsCount || 0
-      });
-    } else {
-      navigate('/youth-list');
-    }
+    const loadYouth = async () => {
+      const youthList = await storageService.getYouth();
+      const found = youthList.find(y => y.id === id);
+      if (found) {
+        setOriginalYouth(found);
+        setFormData({
+          name: found.name,
+          grade: found.grade,
+          phone: found.phone,
+          image: found.image || '',
+          pdfDoc: found.pdfDoc || '',
+          address: found.address || '',
+          region: found.region || 'منطقة الكنيسة',
+          fatherPhone: found.fatherPhone || '',
+          motherPhone: found.motherPhone || '',
+          siblingsCount: found.siblingsCount || 0
+        });
+      } else {
+        navigate('/youth-list');
+      }
+    };
+    loadYouth();
   }, [id, navigate]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +94,7 @@ export const EditYouth: React.FC = () => {
     e.preventDefault();
     if (!formData.name || !originalYouth) return;
 
-    const youthList = storageService.getYouth();
+    const youthList = await storageService.getYouth();
     const updatedList = youthList.map(y => 
       y.id === id 
         ? { 

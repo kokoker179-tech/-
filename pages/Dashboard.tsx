@@ -64,10 +64,10 @@ export const Dashboard: React.FC = () => {
   const lang = storageService.getLang();
   const recentFridaysList = getRecentFridays(12);
 
-  const loadData = () => {
-    const youthList = storageService.getYouth();
-    const servantsList = storageService.getServants();
-    const allRecords = storageService.getAttendance();
+  const loadData = async () => {
+    const youthList = await storageService.getYouth();
+    const servantsList = await storageService.getServants();
+    const allRecords = await storageService.getAttendance();
     const currentFri = activeDate;
     const recentFridays = getRecentFridays(6).reverse();
 

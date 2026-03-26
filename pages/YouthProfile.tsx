@@ -31,6 +31,8 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const [marathonPoints, setMarathonPoints] = useState<any[]>([]);
   const [visitations, setVisitations] = useState<Visitation[]>([]);
   const [servants, setServants] = useState<any[]>([]);
+  const [allPoints, setAllPoints] = useState<any[]>([]);
+  const [allYouth, setAllYouth] = useState<Youth[]>([]);
   const [summary, setSummary] = useState({ 
     present: 0, absent: 0, totalFridays: 0, 
     liturgy: 0, meeting: 0, bible: 0, confession: 0, visitation: 0, communion: 0 
@@ -40,15 +42,15 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const loadData = () => {
-    const adminStatus = storageService.isLoggedIn();
+  const loadData = async () => {
+    const adminStatus = await storageService.isLoggedIn();
     setIsAdmin(adminStatus);
-    const allYouth = storageService.getYouth();
+    const allYouth = await storageService.getYouth();
     const found = allYouth.find(y => y.id === id);
     if (found) {
       setYouth(found);
       
-      const allRecords = storageService.getAttendance().filter(r => r.youthId === found.id);
+      const allRecords = (await storageService.getAttendance()).filter(r => r.youthId === found.id);
       const joinDateStr = found.addedAt ? new Date(found.addedAt).toISOString().split('T')[0] : '2020-01-01';
       const effectiveJoinDate = joinDateStr < SYSTEM_START_DATE ? SYSTEM_START_DATE : joinDateStr;
       const historyMap = new Map<string, any>();
@@ -96,13 +98,15 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
         communion: allRecords.filter(r => r.communion).length
       });
 
-      setMarathons(storageService.getMarathons());
-      setGroups(storageService.getMarathonGroups());
-      setMarathonPoints(storageService.getMarathonActivityPoints().filter(p => p.youthId === found.id));
+      setMarathons(await storageService.getMarathons());
+      setGroups(await storageService.getMarathonGroups());
+      setMarathonPoints((await storageService.getMarathonActivityPoints()).filter(p => p.youthId === found.id));
+      setAllPoints(await storageService.getMarathonActivityPoints());
+      setAllYouth(await storageService.getYouth());
       
-      const allVisitations = storageService.getVisitations();
+      const allVisitations = await storageService.getVisitations();
       setVisitations(allVisitations.filter(v => v.youthId === found.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      setServants(storageService.getServants());
+      setServants(await storageService.getServants());
     } else {
       if (id !== 'portal') navigate('/');
     }
