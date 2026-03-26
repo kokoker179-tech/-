@@ -19,8 +19,8 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, percentag
     const fetchData = async () => {
       const youth = await storageService.getYouth();
       setTotalYouth(youth.length);
-      setTheme(await storageService.getTheme());
-      setLang(await storageService.getLang());
+      setTheme(storageService.getTheme());
+      setLang(storageService.getLang());
     };
     fetchData();
   }, []);
