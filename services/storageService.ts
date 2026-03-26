@@ -1,7 +1,5 @@
 
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
-import { db } from '../src/firebase';
-import { collection, getDocs, setDoc, doc, deleteDoc, query } from 'firebase/firestore';
 
 const YOUTH_KEY = 'church_db_youth_v3';
 const ATTENDANCE_KEY = 'church_db_attendance_v3';
@@ -77,159 +75,199 @@ export const storageService = {
   clearDirty: () => localStorage.removeItem(DIRTY_FLAG),
   isDirty: () => localStorage.getItem(DIRTY_FLAG) === 'true',
 
-  getYouth: async (): Promise<Youth[]> => {
-    const querySnapshot = await getDocs(collection(db, 'youth'));
-    return querySnapshot.docs.map(doc => doc.data() as Youth);
+  getYouth: (): Youth[] => {
+    try {
+      const saved = localStorage.getItem(YOUTH_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
-  getAttendance: async (): Promise<AttendanceRecord[]> => {
-    const querySnapshot = await getDocs(collection(db, 'attendance'));
-    return querySnapshot.docs.map(doc => doc.data() as AttendanceRecord);
+  getAttendance: (): AttendanceRecord[] => {
+    try {
+      const saved = localStorage.getItem(ATTENDANCE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
 
   saveYouth: async (youth: Youth[]) => {
-    for (const y of youth) {
-      await setDoc(doc(db, 'youth', y.id), y);
-    }
+    localStorage.setItem(YOUTH_KEY, JSON.stringify(youth));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
 
   saveAttendance: async (records: AttendanceRecord[]) => {
-    for (const r of records) {
-      await setDoc(doc(db, 'attendance', r.id), r);
-    }
+    localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(records));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
 
   // Servant Methods
-  getServants: async (): Promise<Servant[]> => {
-    const querySnapshot = await getDocs(collection(db, 'servants'));
-    return querySnapshot.docs.map(doc => doc.data() as Servant);
+  getServants: (): Servant[] => {
+    try {
+      const saved = localStorage.getItem(SERVANTS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
   saveServants: async (servants: Servant[]) => {
-    for (const s of servants) {
-      await setDoc(doc(db, 'servants', s.id), s);
-    }
+    localStorage.setItem(SERVANTS_KEY, JSON.stringify(servants));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
   addServant: async (servant: Servant) => {
-    await setDoc(doc(db, 'servants', servant.id), servant);
+    const servants = storageService.getServants();
+    await storageService.saveServants([...servants, servant]);
   },
   updateServant: async (servant: Servant) => {
-    await setDoc(doc(db, 'servants', servant.id), servant);
+    const servants = storageService.getServants();
+    const idx = servants.findIndex(s => s.id === servant.id);
+    if (idx > -1) {
+      servants[idx] = servant;
+      await storageService.saveServants(servants);
+    }
   },
   deleteServant: async (id: string) => {
-    await deleteDoc(doc(db, 'servants', id));
+    const servants = storageService.getServants().filter(s => s.id !== id);
+    await storageService.saveServants(servants);
   },
 
   // Marathon Methods
-  getMarathons: async (): Promise<Marathon[]> => {
-    const querySnapshot = await getDocs(collection(db, 'marathons'));
-    return querySnapshot.docs.map(doc => doc.data() as Marathon);
+  getMarathons: (): Marathon[] => {
+    try {
+      const saved = localStorage.getItem(MARATHONS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
   saveMarathons: async (marathons: Marathon[]) => {
-    for (const m of marathons) {
-      await setDoc(doc(db, 'marathons', m.id), m);
-    }
+    localStorage.setItem(MARATHONS_KEY, JSON.stringify(marathons));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
   addMarathon: async (marathon: Marathon) => {
-    await setDoc(doc(db, 'marathons', marathon.id), marathon);
+    const marathons = storageService.getMarathons();
+    await storageService.saveMarathons([...marathons, marathon]);
   },
   updateMarathon: async (marathon: Marathon) => {
-    await setDoc(doc(db, 'marathons', marathon.id), marathon);
+    const marathons = storageService.getMarathons();
+    const idx = marathons.findIndex(m => m.id === marathon.id);
+    if (idx > -1) {
+      marathons[idx] = marathon;
+      await storageService.saveMarathons(marathons);
+    }
   },
 
-  getMarathonGroups: async (): Promise<MarathonGroup[]> => {
-    const querySnapshot = await getDocs(collection(db, 'marathonGroups'));
-    return querySnapshot.docs.map(doc => doc.data() as MarathonGroup);
+  getMarathonGroups: (): MarathonGroup[] => {
+    try {
+      const saved = localStorage.getItem(MARATHON_GROUPS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
   saveMarathonGroups: async (groups: MarathonGroup[]) => {
-    for (const g of groups) {
-      await setDoc(doc(db, 'marathonGroups', g.id), g);
-    }
+    localStorage.setItem(MARATHON_GROUPS_KEY, JSON.stringify(groups));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
-  addMarathonGroup: (marathonId: string, groupData: Omit<MarathonGroup, 'id'>) => {
+  addMarathonGroup: async (marathonId: string, groupData: Omit<MarathonGroup, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newGroup = { ...groupData, id };
     const groups = storageService.getMarathonGroups();
-    storageService.saveMarathonGroups([...groups, newGroup]);
+    await storageService.saveMarathonGroups([...groups, newGroup]);
     
     const marathons = storageService.getMarathons();
     const mIdx = marathons.findIndex(m => m.id === marathonId);
     if (mIdx > -1) {
       marathons[mIdx].groupIds.push(id);
-      storageService.saveMarathons(marathons);
+      await storageService.saveMarathons(marathons);
     }
     return newGroup;
   },
-  updateMarathonGroup: (group: MarathonGroup) => {
+  updateMarathonGroup: async (group: MarathonGroup) => {
     const groups = storageService.getMarathonGroups();
     const idx = groups.findIndex(g => g.id === group.id);
     if (idx > -1) {
       groups[idx] = group;
-      storageService.saveMarathonGroups(groups);
+      await storageService.saveMarathonGroups(groups);
     }
   },
-  deleteMarathonGroup: (groupId: string) => {
+  deleteMarathonGroup: async (groupId: string) => {
     const groups = storageService.getMarathonGroups().filter(g => g.id !== groupId);
-    storageService.saveMarathonGroups(groups);
+    await storageService.saveMarathonGroups(groups);
     
     const marathons = storageService.getMarathons();
     marathons.forEach(m => {
       m.groupIds = m.groupIds.filter(id => id !== groupId);
     });
-    storageService.saveMarathons(marathons);
+    await storageService.saveMarathons(marathons);
   },
 
-  getMarathonActivityPoints: async (): Promise<MarathonActivityPoints[]> => {
-    const querySnapshot = await getDocs(collection(db, 'marathonActivityPoints'));
-    return querySnapshot.docs.map(doc => doc.data() as MarathonActivityPoints);
+  getMarathonActivityPoints: (): MarathonActivityPoints[] => {
+    try {
+      const saved = localStorage.getItem(MARATHON_POINTS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
   saveMarathonActivityPoints: async (points: MarathonActivityPoints[]) => {
-    for (const p of points) {
-      await setDoc(doc(db, 'marathonActivityPoints', p.id), p);
-    }
+    localStorage.setItem(MARATHON_POINTS_KEY, JSON.stringify(points));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
   addMarathonActivityPoints: async (point: MarathonActivityPoints) => {
-    await setDoc(doc(db, 'marathonActivityPoints', point.id), point);
+    const points = storageService.getMarathonActivityPoints();
+    await storageService.saveMarathonActivityPoints([...points, point]);
   },
 
   // Special Follow-up Methods
-  getServantAttendance: async (): Promise<ServantAttendance[]> => {
-    const querySnapshot = await getDocs(collection(db, 'servantAttendance'));
-    return querySnapshot.docs.map(doc => doc.data() as ServantAttendance);
+  getServantAttendance: (): ServantAttendance[] => {
+    try {
+      const saved = localStorage.getItem(SERVANT_ATTENDANCE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
   saveServantAttendance: async (records: ServantAttendance[]) => {
-    for (const r of records) {
-      await setDoc(doc(db, 'servantAttendance', r.id), r);
-    }
+    localStorage.setItem(SERVANT_ATTENDANCE_KEY, JSON.stringify(records));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
-  getVisitations: async (): Promise<Visitation[]> => {
-    const querySnapshot = await getDocs(collection(db, 'visitations'));
-    return querySnapshot.docs.map(doc => doc.data() as Visitation);
+  getVisitations: (): Visitation[] => {
+    try {
+      const saved = localStorage.getItem(VISITATION_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   },
   saveVisitations: async (visitations: Visitation[]) => {
-    for (const v of visitations) {
-      await setDoc(doc(db, 'visitations', v.id), v);
-    }
+    localStorage.setItem(VISITATION_KEY, JSON.stringify(visitations));
+    storageService.markDirty();
     window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    return await storageService.pushToCloud();
   },
   addVisitation: async (visitation: Visitation) => {
-    await setDoc(doc(db, 'visitations', visitation.id), visitation);
+    const visitations = storageService.getVisitations();
+    await storageService.saveVisitations([...visitations, visitation]);
   },
   deleteVisitation: async (id: string) => {
-    await deleteDoc(doc(db, 'visitations', id));
+    const visitations = storageService.getVisitations().filter(v => v.id !== id);
+    await storageService.saveVisitations(visitations);
   },
 
   deleteAttendanceRecord: async (recordId: string): Promise<boolean> => {
@@ -326,7 +364,7 @@ export const storageService = {
     groups.forEach(g => {
       g.youthIds = g.youthIds.filter(yId => yId !== id);
     });
-    storageService.saveMarathonGroups(groups);
+    await storageService.saveMarathonGroups(groups);
 
     localStorage.setItem(YOUTH_KEY, JSON.stringify(updatedYouth));
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(updatedAttendance));
