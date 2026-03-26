@@ -17,7 +17,7 @@ export const DEFAULT_POINT_SYSTEM = {
   fasting: 50
 };
 
-export const SYSTEM_START_DATE = '2026-02-27';
+export const SYSTEM_START_DATE = '2026-03-27';
 
 export const getActiveFriday = () => {
   const d = new Date();

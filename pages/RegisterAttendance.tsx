@@ -242,31 +242,6 @@ export const RegisterAttendance: React.FC = () => {
             <div className="p-8 bg-slate-50/50 border-t-2 border-slate-50 space-y-8 animate-in slide-in-from-top-4">
               {/* Status Grid */}
               <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-                <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
-                <StatusToggle 
-                  active={record?.communion} 
-                  icon={Wine} 
-                  label="تناول" 
-                  color="rose" 
-                  disabled={!record?.liturgy}
-                  onClick={() => {
-                    if (record?.liturgy) {
-                      updateRecordField(person.id, 'communion', !record?.communion, isServant);
-                    }
-                  }} 
-                />
-                <StatusToggle 
-                  active={record?.tonia} 
-                  icon={Shirt} 
-                  label="تونية" 
-                  color="indigo" 
-                  disabled={!record?.liturgy || !record?.communion}
-                  onClick={() => {
-                    if (record?.liturgy && record?.communion) {
-                      updateRecordField(person.id, 'tonia', !record?.tonia, isServant);
-                    }
-                  }} 
-                />
                 <StatusToggle active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(person.id, 'meeting', !record?.meeting, isServant)} />
                 {!isServant && (
                   <>
@@ -280,8 +255,6 @@ export const RegisterAttendance: React.FC = () => {
                 <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                   <h5 className="font-black text-amber-800 mb-4 flex items-center gap-2"><Trophy size={18}/> نقاط الماراثون الإضافية</h5>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
-                    <StatusToggle active={record?.communion} icon={Wine} label="تناول" color="rose" onClick={() => updateRecordField(person.id, 'communion', !record?.communion, isServant)} />
                     <StatusToggle active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha, isServant)} />
                     <StatusToggle active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting, isServant)} />
                     <StatusToggle active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart, isServant)} />
@@ -294,16 +267,6 @@ export const RegisterAttendance: React.FC = () => {
               {/* Time & Date Details */}
               {!isServant && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <Clock size={14} className="text-amber-500" /> وقت القداس (ساعة : دقيقة)
-                    </label>
-                    <input 
-                      type="time" value={record?.liturgyTime || ''} 
-                      onChange={(e) => updateRecordField(person.id, 'liturgyTime', e.target.value, isServant)}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-amber-400"
-                    />
-                  </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Clock size={14} className="text-emerald-500" /> وقت الاجتماع (ساعة : دقيقة)
@@ -326,7 +289,7 @@ export const RegisterAttendance: React.FC = () => {
                       className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-purple-400"
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-3">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Calendar size={14} className="text-purple-500" /> تاريخ الاعتراف الفعلي
                     </label>
