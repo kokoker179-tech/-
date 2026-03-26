@@ -50,6 +50,16 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handleResetAttendanceFromDate = async () => {
+    if (window.confirm('⚠️ حذف سجلات الحضور قبل ٢٧ مارس ٢٠٢٦؟\n\nسيتم حذف كافة سجلات الحضور ونقاط الماراثون قبل هذا التاريخ. لا يمكن التراجع!')) {
+      setIsSaving(true);
+      const success = await storageService.resetAttendanceFromDate('2026-03-27');
+      setIsSaving(false);
+      if (success) showStatus('تم تصفير السجل التاريخي بنجاح');
+      else showStatus('حدث خطأ في المزامنة', 'error');
+    }
+  };
+
   const handleWipeYouth = async () => {
     if (window.confirm('⚠️ حذف كافة أسماء الشباب؟\n\nسيتم مسح قائمة الشباب تماماً مع كافة سجلاتهم. سيصبح النظام فارغاً.')) {
       setIsSaving(true);
@@ -278,6 +288,14 @@ export const Settings: React.FC = () => {
                   <p className="text-sm text-rose-700 font-bold mb-6">يمسح كل أيام الحضور السابقة ويترك أسماء الشباب.</p>
                   <button onClick={handleWipeAttendance} className="w-full py-4 bg-white border-2 border-rose-300 text-rose-600 rounded-2xl font-black hover:bg-rose-600 hover:text-white transition-all">
                     مسح السجل التاريخي
+                  </button>
+                </div>
+
+                <div className="bg-rose-50 p-8 rounded-[2rem] border border-rose-100">
+                  <h4 className="font-black text-xl text-rose-900 mb-2 flex items-center gap-2"><Eraser size={20}/> بدء من ٢٧ مارس ٢٠٢٦</h4>
+                  <p className="text-sm text-rose-700 font-bold mb-6">يمسح سجلات الحضور قبل ٢٧ مارس ٢٠٢٦.</p>
+                  <button onClick={handleResetAttendanceFromDate} className="w-full py-4 bg-white border-2 border-rose-300 text-rose-600 rounded-2xl font-black hover:bg-rose-600 hover:text-white transition-all">
+                    مسح السجل قبل ٢٧ مارس
                   </button>
                 </div>
 

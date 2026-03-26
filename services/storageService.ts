@@ -260,6 +260,23 @@ export const storageService = {
     return await storageService.pushToCloud();
   },
 
+  resetAttendanceFromDate: async (date: string): Promise<boolean> => {
+    const currentAttendance = storageService.getAttendance();
+    const currentPoints = storageService.getMarathonActivityPoints();
+
+    // Filter attendance records: keep only those >= date
+    const updatedAttendance = currentAttendance.filter(r => r.date >= date);
+    localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(updatedAttendance));
+
+    // Filter marathon points: keep only those where weekDate >= date
+    const updatedPoints = currentPoints.filter(p => p.weekDate >= date);
+    localStorage.setItem(MARATHON_POINTS_KEY, JSON.stringify(updatedPoints));
+
+    storageService.markDirty();
+    window.dispatchEvent(new Event('storage_updated'));
+    return await storageService.pushToCloud();
+  },
+
   wipeAllAttendance: async (): Promise<boolean> => {
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify([]));
     storageService.markDirty();
