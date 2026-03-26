@@ -13,12 +13,12 @@ export const MarathonDashboard: React.FC = () => {
   const [activityPoints, setActivityPoints] = useState<MarathonActivityPoints[]>([]);
   const [youth, setYouth] = useState<Youth[]>([]);
 
-  const loadData = () => {
-    const m = storageService.getMarathons();
+  const loadData = async () => {
+    const m = await storageService.getMarathons();
     setMarathons(m);
-    setGroups(storageService.getMarathonGroups());
-    setActivityPoints(storageService.getMarathonActivityPoints());
-    setYouth(storageService.getYouth());
+    setGroups(await storageService.getMarathonGroups());
+    setActivityPoints(await storageService.getMarathonActivityPoints());
+    setYouth(await storageService.getYouth());
     
     if (m.length > 0) {
       const active = m.find(mar => mar.active) || m[0];

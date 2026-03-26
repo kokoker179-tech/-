@@ -11,10 +11,21 @@ interface DashboardStatsProps {
 }
 
 export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, percentage }) => {
-  const totalYouth = storageService.getYouth().length;
+  const [totalYouth, setTotalYouth] = React.useState(0);
+  const [theme, setTheme] = React.useState('light');
+  const [lang, setLang] = React.useState('ar');
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      const youth = await storageService.getYouth();
+      setTotalYouth(youth.length);
+      setTheme(await storageService.getTheme());
+      setLang(await storageService.getLang());
+    };
+    fetchData();
+  }, []);
+
   const totalAbsent = Math.max(0, totalYouth - stats.totalToday);
-  const theme = storageService.getTheme();
-  const lang = storageService.getLang();
 
   const data = [
     { name: 'حضور', value: stats.totalToday },

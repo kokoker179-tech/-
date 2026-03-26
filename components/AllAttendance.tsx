@@ -12,9 +12,9 @@ export const AllAttendance: React.FC = () => {
   const [filterDate, setFilterDate] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const loadData = () => {
-    const allRecords = storageService.getAttendance();
-    const allYouth = storageService.getYouth();
+  const loadData = async () => {
+    const allRecords = await storageService.getAttendance();
+    const allYouth = await storageService.getYouth();
     const sortedRecords = allRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setRecords(sortedRecords);
     
