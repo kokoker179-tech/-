@@ -1,6 +1,6 @@
 
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
-import { db } from '../firebase';
+import { db } from '../src/firebase';
 import { collection, getDocs, setDoc, doc, deleteDoc, query } from 'firebase/firestore';
 
 const YOUTH_KEY = 'church_db_youth_v3';

@@ -72,7 +72,7 @@ async function startServer() {
   if (fs.existsSync(distPath)) {
     console.log('Serving static files from dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   } else if (process.env.NODE_ENV !== 'production') {
@@ -83,7 +83,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.status(404).send('Production build not found. Run npm run build first.');
     });
   }
