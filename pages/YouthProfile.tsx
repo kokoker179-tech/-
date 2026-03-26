@@ -139,37 +139,17 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
   const calculateAttendanceRate = () => {
     if (weeklyHistory.length === 0) return 0;
     
-    const calcPointsForHistory = (hList: typeof weeklyHistory) => {
-      let pts = 0;
-      hList.forEach(h => {
-        const r = h.record;
-        if (r) {
-          pts += (r.liturgy ? 1 : 0) + (r.meeting ? 1 : 0) + (r.communion ? 0.5 : 0) + (r.confession ? 0.5 : 0) + (r.bibleReading ? 0.5 : 0);
-        }
-      });
-      return pts;
-    };
-
-    const recentHistory = weeklyHistory.slice(0, 4);
-    const historicalHistory = weeklyHistory.slice(4);
+    let totalPoints = 0;
+    weeklyHistory.forEach(h => {
+      const r = h.record;
+      if (r) {
+        totalPoints += (r.liturgy ? 1 : 0) + (r.meeting ? 1 : 0) + (r.communion ? 0.5 : 0) + (r.confession ? 0.5 : 0) + (r.bibleReading ? 0.5 : 0);
+      }
+    });
     
-    const recentPoints = calcPointsForHistory(recentHistory);
-    const historicalPoints = calcPointsForHistory(historicalHistory);
+    const maxPoints = weeklyHistory.length * 2;
     
-    const recentMax = recentHistory.length * 2;
-    const historicalMax = historicalHistory.length * 2;
-    
-    let percentage = 0;
-    if (weeklyHistory.length <= 4) {
-      percentage = recentMax > 0 ? Math.round((recentPoints / recentMax) * 100) : 0;
-    } else {
-      const recentRate = recentMax > 0 ? (recentPoints / recentMax) : 0;
-      const historicalRate = historicalMax > 0 ? (historicalPoints / historicalMax) : 0;
-      // 60% weight for recent, 40% for historical
-      percentage = Math.round((recentRate * 0.6 + historicalRate * 0.4) * 100);
-    }
-    
-    return Math.min(100, percentage);
+    return maxPoints > 0 ? Math.min(100, Math.round((totalPoints / maxPoints) * 100)) : 0;
   };
   
   const attendanceRate = calculateAttendanceRate();

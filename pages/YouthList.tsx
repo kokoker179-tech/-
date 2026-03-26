@@ -85,26 +85,10 @@ export const YouthList: React.FC = () => {
         return l + m + (c * 0.5) + (cf * 0.5) + (b * 0.5);
       };
 
-      const recentPoints = calcPoints(recentRecords);
-      const historicalPoints = calcPoints(historicalRecords);
+      const totalPoints = calcPoints(yRecords);
+      const maxPoints = weeksSinceAdded * 2;
       
-      const recentWeeks = Math.min(weeksSinceAdded, 4);
-      const historicalWeeks = Math.max(0, weeksSinceAdded - recentWeeks);
-      
-      const recentMax = recentWeeks * 2;
-      const historicalMax = historicalWeeks * 2;
-      
-      let percentage = 0;
-      if (weeksSinceAdded <= 4) {
-        percentage = recentMax > 0 ? Math.round((recentPoints / recentMax) * 100) : 0;
-      } else {
-        const recentRate = recentMax > 0 ? (recentPoints / recentMax) : 0;
-        const historicalRate = historicalMax > 0 ? (historicalPoints / historicalMax) : 0;
-        // 60% weight for recent, 40% for historical
-        percentage = Math.round((recentRate * 0.6 + historicalRate * 0.4) * 100);
-      }
-      
-      percentage = Math.min(100, percentage);
+      const percentage = maxPoints > 0 ? Math.min(100, Math.round((totalPoints / maxPoints) * 100)) : 0;
       
       return {
         ...y,
