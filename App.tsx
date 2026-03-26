@@ -160,7 +160,7 @@ const App: React.FC = () => {
   const [statusMsg, setStatusMsg] = useState('بدء تهيئة النظام...');
 
   useEffect(() => {
-    const duration = 30000; 
+    const duration = 3000; 
     const interval = 100;
     const steps = duration / interval;
     let currentStepCount = 0;

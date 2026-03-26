@@ -1,4 +1,5 @@
 
+console.log(`Server starting... NODE_ENV: ${process.env.NODE_ENV}`);
 import express from 'express';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
@@ -38,6 +39,10 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   // API Routes
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   app.get('/api/data', (req, res) => {
     try {
       const data = fs.readFileSync(DB_FILE, 'utf-8');
@@ -63,29 +68,28 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = path.join(__dirname, 'dist');
+  if (fs.existsSync(distPath)) {
+    console.log('Serving static files from dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else if (process.env.NODE_ENV !== 'production') {
+    console.log('Using Vite middleware for development');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    // Serve static files in production
-    const distPath = path.join(__dirname, 'dist');
-    if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
-    } else {
-      app.get('*', (req, res) => {
-        res.status(404).send('Production build not found. Run npm run build first.');
-      });
-    }
+    app.get('*', (req, res) => {
+      res.status(404).send('Production build not found. Run npm run build first.');
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

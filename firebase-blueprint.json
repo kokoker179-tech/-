@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "Youth": {
+      "title": "Youth",
+      "description": "Represents a youth member",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "grade": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["id", "name", "grade"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Represents an attendance record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "youthId": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "youthId", "date"]
+    },
+    "Servant": {
+      "title": "Servant",
+      "description": "Represents a servant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/youth/{youthId}": {
+      "schema": "Youth",
+      "description": "Collection of youth members"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "AttendanceRecord",
+      "description": "Collection of attendance records"
+    },
+    "/servants/{servantId}": {
+      "schema": "Servant",
+      "description": "Collection of servants"
+    }
+  }
+}
