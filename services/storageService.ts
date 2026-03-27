@@ -121,7 +121,7 @@ export const storageService = {
   },
 
   saveConfig: async (config: SystemConfig): Promise<boolean> => {
-    await setDoc(doc(db, 'config', 'main'), config);
+    await withTimeout(setDoc(doc(db, 'config', 'main'), config));
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
@@ -147,13 +147,13 @@ export const storageService = {
 
   saveYouth: async (youth: Youth[]) => {
     for (const y of youth) {
-      await setDoc(doc(db, 'youth', y.id), y);
+      await withTimeout(setDoc(doc(db, 'youth', y.id), y));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   saveSingleYouth: async (youth: Youth) => {
-    await setDoc(doc(db, 'youth', youth.id), youth);
+    await withTimeout(setDoc(doc(db, 'youth', youth.id), youth));
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
@@ -161,14 +161,14 @@ export const storageService = {
   saveAttendance: async (records: AttendanceRecord[]) => {
     // This is inefficient for large datasets, but kept for bulk updates if needed
     for (const r of records) {
-      await setDoc(doc(db, 'attendance', r.id), r);
+      await withTimeout(setDoc(doc(db, 'attendance', r.id), r));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
 
   saveSingleAttendance: async (record: AttendanceRecord) => {
-    await setDoc(doc(db, 'attendance', record.id), record);
+    await withTimeout(setDoc(doc(db, 'attendance', record.id), record));
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
@@ -185,19 +185,19 @@ export const storageService = {
   },
   saveServants: async (servants: Servant[]) => {
     for (const s of servants) {
-      await setDoc(doc(db, 'servants', s.id), s);
+      await withTimeout(setDoc(doc(db, 'servants', s.id), s));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   addServant: async (servant: Servant) => {
-    await setDoc(doc(db, 'servants', servant.id), servant);
+    await withTimeout(setDoc(doc(db, 'servants', servant.id), servant));
   },
   updateServant: async (servant: Servant) => {
-    await setDoc(doc(db, 'servants', servant.id), servant);
+    await withTimeout(setDoc(doc(db, 'servants', servant.id), servant));
   },
   deleteServant: async (id: string) => {
-    await deleteDoc(doc(db, 'servants', id));
+    await withTimeout(deleteDoc(doc(db, 'servants', id)));
   },
 
   // Marathon Methods
@@ -212,17 +212,17 @@ export const storageService = {
   },
   saveMarathons: async (marathons: Marathon[]) => {
     for (const m of marathons) {
-      await setDoc(doc(db, 'marathons', m.id), m);
+      await withTimeout(setDoc(doc(db, 'marathons', m.id), m));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   addMarathon: async (marathon: Marathon) => {
-    await setDoc(doc(db, 'marathons', marathon.id), marathon);
+    await withTimeout(setDoc(doc(db, 'marathons', marathon.id), marathon));
     window.dispatchEvent(new Event('storage_updated'));
   },
   updateMarathon: async (marathon: Marathon) => {
-    await setDoc(doc(db, 'marathons', marathon.id), marathon);
+    await withTimeout(setDoc(doc(db, 'marathons', marathon.id), marathon));
     window.dispatchEvent(new Event('storage_updated'));
   },
 
@@ -237,7 +237,7 @@ export const storageService = {
   },
   saveMarathonGroups: async (groups: MarathonGroup[]) => {
     for (const g of groups) {
-      await setDoc(doc(db, 'marathonGroups', g.id), g);
+      await withTimeout(setDoc(doc(db, 'marathonGroups', g.id), g));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
@@ -245,28 +245,28 @@ export const storageService = {
   addMarathonGroup: async (marathonId: string, groupData: Omit<MarathonGroup, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newGroup = { ...groupData, id };
-    await setDoc(doc(db, 'marathonGroups', id), newGroup);
+    await withTimeout(setDoc(doc(db, 'marathonGroups', id), newGroup));
     
     // Update marathon document with new group ID
     const marathonRef = doc(db, 'marathons', marathonId);
     const marathonSnap = await getDoc(marathonRef);
     if (marathonSnap.exists()) {
       const marathon = marathonSnap.data() as Marathon;
-      await setDoc(marathonRef, {
+      await withTimeout(setDoc(marathonRef, {
         ...marathon,
         groupIds: [...(marathon.groupIds || []), id]
-      });
+      }));
     }
     
     window.dispatchEvent(new Event('storage_updated'));
     return newGroup;
   },
   updateMarathonGroup: async (group: MarathonGroup) => {
-    await setDoc(doc(db, 'marathonGroups', group.id), group);
+    await withTimeout(setDoc(doc(db, 'marathonGroups', group.id), group));
     window.dispatchEvent(new Event('storage_updated'));
   },
   deleteMarathonGroup: async (groupId: string) => {
-    await deleteDoc(doc(db, 'marathonGroups', groupId));
+    await withTimeout(deleteDoc(doc(db, 'marathonGroups', groupId)));
     window.dispatchEvent(new Event('storage_updated'));
   },
 
@@ -281,17 +281,17 @@ export const storageService = {
   },
   saveMarathonActivityPoints: async (points: MarathonActivityPoints[]) => {
     for (const p of points) {
-      await setDoc(doc(db, 'marathonActivityPoints', p.id), p);
+      await withTimeout(setDoc(doc(db, 'marathonActivityPoints', p.id), p));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   addMarathonActivityPoints: async (point: MarathonActivityPoints) => {
-    await setDoc(doc(db, 'marathonActivityPoints', point.id), point);
+    await withTimeout(setDoc(doc(db, 'marathonActivityPoints', point.id), point));
     window.dispatchEvent(new Event('storage_updated'));
   },
   deleteMarathonActivityPoint: async (id: string) => {
-    await deleteDoc(doc(db, 'marathonActivityPoints', id));
+    await withTimeout(deleteDoc(doc(db, 'marathonActivityPoints', id)));
     window.dispatchEvent(new Event('storage_updated'));
   },
 
@@ -307,7 +307,7 @@ export const storageService = {
   },
   saveServantAttendance: async (records: ServantAttendance[]) => {
     for (const r of records) {
-      await setDoc(doc(db, 'servantAttendance', r.id), r);
+      await withTimeout(setDoc(doc(db, 'servantAttendance', r.id), r));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
@@ -323,22 +323,22 @@ export const storageService = {
   },
   saveVisitations: async (visitations: Visitation[]) => {
     for (const v of visitations) {
-      await setDoc(doc(db, 'visitations', v.id), v);
+      await withTimeout(setDoc(doc(db, 'visitations', v.id), v));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   addVisitation: async (visitation: Visitation) => {
-    await setDoc(doc(db, 'visitations', visitation.id), visitation);
+    await withTimeout(setDoc(doc(db, 'visitations', visitation.id), visitation));
     window.dispatchEvent(new Event('storage_updated'));
   },
   deleteVisitation: async (id: string) => {
-    await deleteDoc(doc(db, 'visitations', id));
+    await withTimeout(deleteDoc(doc(db, 'visitations', id)));
     window.dispatchEvent(new Event('storage_updated'));
   },
 
   deleteAttendanceRecord: async (recordId: string): Promise<boolean> => {
-    await deleteDoc(doc(db, 'attendance', recordId));
+    await withTimeout(deleteDoc(doc(db, 'attendance', recordId)));
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },

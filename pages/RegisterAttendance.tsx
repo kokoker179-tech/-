@@ -200,9 +200,16 @@ export const RegisterAttendance: React.FC = () => {
           position: 'top-center'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving attendance:', error);
-      toast.error('فشل حفظ البيانات.. تأكد من الاتصال بالإنترنت');
+      const errorMsg = error.message || 'خطأ غير معروف';
+      if (errorMsg.includes('Operation timed out')) {
+        toast.error('فشل الحفظ: انتهى وقت المحاولة.. تأكد من استقرار الإنترنت');
+      } else if (errorMsg.includes('Missing or insufficient permissions')) {
+        toast.error('فشل الحفظ: ليس لديك صلاحية كافية.. تواصل مع المسؤول');
+      } else {
+        toast.error(`فشل حفظ البيانات: ${errorMsg}`);
+      }
     } finally {
       setLoading(false);
     }

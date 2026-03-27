@@ -154,7 +154,7 @@ const SyncIndicator = () => {
 import { auth } from './src/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -194,6 +194,19 @@ const App: React.FC = () => {
         clearInterval(timer);
         
         storageService.syncFromCloud(true).finally(async () => {
+          // Connection test
+          try {
+            const { getDocFromServer, doc } = await import('firebase/firestore');
+            const { db } = await import('./src/firebase');
+            await getDocFromServer(doc(db, 'config', 'main'));
+            console.log("Firestore connection test successful");
+          } catch (e: any) {
+            console.error("Firestore connection test failed:", e);
+            if (e.message?.includes('the client is offline')) {
+              toast.error('النظام غير قادر على الاتصال بقاعدة البيانات.. تأكد من الإنترنت أو إعدادات Firebase');
+            }
+          }
+          
           const loggedIn = await storageService.isLoggedIn();
           const special = await storageService.isSpecialAccess();
           setIsAuthenticated(loggedIn);
