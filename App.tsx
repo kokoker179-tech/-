@@ -163,13 +163,6 @@ const App: React.FC = () => {
   const [statusMsg, setStatusMsg] = useState('بدء تهيئة النظام...');
 
   useEffect(() => {
-    // Sign in anonymously if not already authenticated to satisfy Firestore rules
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        signInAnonymously(auth).catch(err => console.error('Auth error:', err));
-      }
-    });
-    
     const duration = 6000; // Increased from 3000 to 6000
     const interval = 100;
     const steps = duration / interval;
@@ -197,6 +190,14 @@ const App: React.FC = () => {
 
       if (currentStepCount >= steps) {
         clearInterval(timer);
+        
+        // Try to sign in anonymously in background
+        signInAnonymously(auth).catch(err => {
+          if (err.code !== 'auth/admin-restricted-operation') {
+            console.error('Auth error:', err);
+          }
+        });
+
         storageService.syncFromCloud(true).finally(async () => {
           const loggedIn = await storageService.isLoggedIn();
           const special = await storageService.isSpecialAccess();
@@ -209,7 +210,6 @@ const App: React.FC = () => {
 
     return () => {
       clearInterval(timer);
-      unsubscribe();
     };
   }, []);
 

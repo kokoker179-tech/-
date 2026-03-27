@@ -8,8 +8,9 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == "kokoker179@gmail.com" && 
-        request.auth.token.email_verified == true
+        (request.auth.token.email == "kokoker179@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/sessions/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/sessions/$(request.auth.uid)).data.isLoggedIn == true)
       );
     }
 
@@ -20,49 +21,41 @@ service cloud.firestore {
     }
 
     // Sessions (for device tracking)
-    match /sessions/{deviceId} {
+    match /sessions/{uid} {
       allow read, write: if true;
     }
 
     // Core Collections
     match /youth/{youthId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
     
     match /attendance/{attendanceId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
     
     match /servants/{servantId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /marathons/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /marathonGroups/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /marathonActivityPoints/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /servantAttendance/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /visitations/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
   }
 }

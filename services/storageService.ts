@@ -1,7 +1,7 @@
 
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
 import { db, auth } from '../src/firebase';
-import { signOut } from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, getDocsFromServer } from 'firebase/firestore';
 
 const CONFIG_KEY = 'church_db_config_v3';
@@ -35,8 +35,8 @@ const DEFAULT_CONFIG: SystemConfig = {
 export const storageService = {
   isLoggedIn: async (): Promise<boolean> => {
     try {
-      const deviceId = getDeviceId();
-      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', deviceId)), 5000);
+      if (!auth.currentUser) return localStorage.getItem(SESSION_KEY) === 'true';
+      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', auth.currentUser.uid)), 5000);
       return docSnap.exists() && docSnap.data().isLoggedIn === true;
     } catch {
       return localStorage.getItem(SESSION_KEY) === 'true';
@@ -44,37 +44,52 @@ export const storageService = {
   },
   isSpecialAccess: async (): Promise<boolean> => {
     try {
-      const deviceId = getDeviceId();
-      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', deviceId)), 5000);
+      if (!auth.currentUser) return localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true';
+      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', auth.currentUser.uid)), 5000);
       return docSnap.exists() && docSnap.data().isSpecialAccess === true;
     } catch {
       return localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true';
     }
   },
   setLoggedIn: async (status: boolean, isSpecial: boolean = false) => {
-    const deviceId = getDeviceId();
     if (status) {
       localStorage.setItem(SESSION_KEY, 'true');
       if (isSpecial) localStorage.setItem(SPECIAL_ACCESS_KEY, 'true');
       else localStorage.removeItem(SPECIAL_ACCESS_KEY);
       
-      await setDoc(doc(db, 'sessions', deviceId), {
-        isLoggedIn: true,
-        isSpecialAccess: isSpecial,
-        lastActive: new Date().toISOString()
-      });
+      const deviceId = getDeviceId();
+      let user = auth.currentUser;
+      
+      // Try to write session to Firestore using UID if available, otherwise deviceId
+      const sessionId = user ? user.uid : deviceId;
+      
+      try {
+        await setDoc(doc(db, 'sessions', sessionId), {
+          isLoggedIn: true,
+          isSpecialAccess: isSpecial,
+          uid: user?.uid || null,
+          deviceId: deviceId,
+          email: user?.email || null,
+          lastActive: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('Failed to save session to cloud:', err);
+      }
     } else {
       localStorage.removeItem(SESSION_KEY);
       localStorage.removeItem(SPECIAL_ACCESS_KEY);
-      await deleteDoc(doc(db, 'sessions', deviceId));
+      const deviceId = getDeviceId();
+      const sessionId = auth.currentUser ? auth.currentUser.uid : deviceId;
+      await deleteDoc(doc(db, 'sessions', sessionId)).catch(() => {});
     }
     window.dispatchEvent(new Event('storage_updated'));
   },
   logout: async () => {
-    const deviceId = getDeviceId();
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(SPECIAL_ACCESS_KEY);
-    await deleteDoc(doc(db, 'sessions', deviceId));
+    if (auth.currentUser) {
+      await deleteDoc(doc(db, 'sessions', auth.currentUser.uid)).catch(() => {});
+    }
     await signOut(auth).catch(err => console.error('Sign out error:', err));
     window.dispatchEvent(new Event('storage_updated'));
   },
