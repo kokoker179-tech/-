@@ -379,7 +379,6 @@ export const generateDetailedYouthReportPDF = async (youth: any, history: any[],
       </td>
       <td style="padding: 12px; text-align: center;">
         ${h.record.liturgy ? '✅' : '❌'}
-        ${h.record.liturgyTime ? `<br/><span style="font-size: 9px; color: #64748b;">${h.record.liturgyTime}</span>` : ''}
       </td>
       <td style="padding: 12px; text-align: center;">${h.record.communion ? '✅' : '❌'}</td>
       <td style="padding: 12px; text-align: center;">${h.record.tonia ? '✅' : '❌'}</td>

@@ -79,7 +79,7 @@ export const Dashboard: React.FC = () => {
       const todayRecords = allRecords.filter(r => r.date === currentFri && (r.liturgy || r.meeting));
       
       // إحصائيات اليوم المحدد
-      const early = todayRecords.filter(r => r.liturgyTime && r.liturgyTime < "08:15").length;
+      const early = 0; // Removed liturgyTime logic
       
       // الاتجاه العام للحضور (آخر 6 أسابيع)
       const trend = recentFridays.map(date => ({

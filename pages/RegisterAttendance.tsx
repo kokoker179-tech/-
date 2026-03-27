@@ -109,10 +109,6 @@ export const RegisterAttendance: React.FC = () => {
       if (field === 'confession' && value === true) {
         newRecord.confessionDate = selectedDate;
       }
-      if (field === 'liturgy' && value === true && !existingRecord.liturgyTime) {
-        const now = new Date();
-        newRecord.liturgyTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      }
       if (field === 'meeting' && value === true && !existingRecord.meetingTime) {
         const now = new Date();
         newRecord.meetingTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -141,7 +137,6 @@ export const RegisterAttendance: React.FC = () => {
       }
       
       if (field === 'confession' && value === true) newRecord.confessionDate = selectedDate;
-      if (field === 'liturgy' && value === true) newRecord.liturgyTime = currentTime;
       if (field === 'meeting' && value === true) newRecord.meetingTime = currentTime;
     }
 
@@ -286,7 +281,6 @@ export const RegisterAttendance: React.FC = () => {
                    <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
                      {isServant ? (person as Servant).role : (person as Youth).grade}
                    </span>
-                   {record?.liturgyTime && !isServant && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">حضر: {record.liturgyTime}</span>}
                 </div>
               </div>
             </div>

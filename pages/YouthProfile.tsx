@@ -321,7 +321,6 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
                       {h.record.liturgy ? (
                         <>
                           <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-4 py-1.5 rounded-lg shadow-sm">حضر</span>
-                          {h.record.liturgyTime && <span className="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1 rounded-md border border-slate-100" dir="ltr">⏰ {h.record.liturgyTime}</span>}
                         </>
                       ) : <span className="text-xs font-black text-rose-800 bg-rose-100 px-4 py-1.5 rounded-lg shadow-sm">غائب</span>}
                     </div>

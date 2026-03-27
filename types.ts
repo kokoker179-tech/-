@@ -34,7 +34,6 @@ export interface AttendanceRecord {
   servantId?: string; // Optional because it could be a youth
   date: string; 
   liturgy: boolean;
-  liturgyTime?: string; // وقت حضور القداس
   meeting: boolean;
   meetingTime?: string; // وقت حضور الاجتماع
   visitation: boolean;

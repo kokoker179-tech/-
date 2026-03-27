@@ -144,7 +144,7 @@ export const AllAttendance: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-start justify-center gap-3">
-                        <Indicator active={record.liturgy} icon={Church} colorClass="bg-amber-100 text-amber-600" label="قداس" time={record.liturgyTime} />
+                        <Indicator active={record.liturgy} icon={Church} colorClass="bg-amber-100 text-amber-600" label="قداس" />
                         <Indicator active={record.communion} icon={Wine} colorClass="bg-rose-100 text-rose-600" label="تناول" />
                         <Indicator active={record.tonia} icon={Shirt} colorClass="bg-indigo-100 text-indigo-600" label="تونية" />
                         <Indicator active={record.meeting} icon={Users} colorClass="bg-emerald-100 text-emerald-600" label="اجتماع" time={record.meetingTime} />
