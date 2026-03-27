@@ -123,8 +123,6 @@ export const RegisterAttendance: React.FC = () => {
       
       newRecord = {
         id: `${personId}-${selectedDate}`,
-        youthId: isServant ? undefined : personId,
-        servantId: isServant ? personId : undefined,
         date: selectedDate,
         liturgy: field === 'liturgy' ? value : false,
         meeting: field === 'meeting' ? value : false,
@@ -135,6 +133,12 @@ export const RegisterAttendance: React.FC = () => {
         tonia: field === 'tonia' ? value : false,
         [field]: value
       };
+
+      if (isServant) {
+        newRecord.servantId = personId;
+      } else {
+        newRecord.youthId = personId;
+      }
       
       if (field === 'confession' && value === true) newRecord.confessionDate = selectedDate;
       if (field === 'liturgy' && value === true) newRecord.liturgyTime = currentTime;

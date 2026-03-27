@@ -67,6 +67,16 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 20000): Promise
   ]);
 };
 
+const cleanObject = (obj: any) => {
+  const result = { ...obj };
+  Object.keys(result).forEach(key => {
+    if (result[key] === undefined) {
+      delete result[key];
+    }
+  });
+  return result;
+};
+
 const getDeviceId = () => {
   let id = localStorage.getItem(DEVICE_ID_KEY);
   if (!id) {
@@ -209,13 +219,13 @@ export const storageService = {
 
   saveYouth: async (youth: Youth[]) => {
     for (const y of youth) {
-      await withTimeout(setDoc(doc(db, 'youth', y.id), y));
+      await withTimeout(setDoc(doc(db, 'youth', y.id), cleanObject(y)));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   saveSingleYouth: async (youth: Youth) => {
-    await withTimeout(setDoc(doc(db, 'youth', youth.id), youth));
+    await withTimeout(setDoc(doc(db, 'youth', youth.id), cleanObject(youth)));
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
@@ -223,7 +233,7 @@ export const storageService = {
   saveAttendance: async (records: AttendanceRecord[]) => {
     // This is inefficient for large datasets, but kept for bulk updates if needed
     for (const r of records) {
-      await withTimeout(setDoc(doc(db, 'attendance', r.id), r));
+      await withTimeout(setDoc(doc(db, 'attendance', r.id), cleanObject(r)));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
@@ -231,8 +241,9 @@ export const storageService = {
 
   saveSingleAttendance: async (record: AttendanceRecord) => {
     const path = `attendance/${record.id}`;
+    const cleanedRecord = cleanObject(record);
     try {
-      await withTimeout(setDoc(doc(db, 'attendance', record.id), record));
+      await withTimeout(setDoc(doc(db, 'attendance', record.id), cleanedRecord));
       window.dispatchEvent(new Event('storage_updated'));
       return true;
     } catch (error) {
@@ -252,16 +263,16 @@ export const storageService = {
   },
   saveServants: async (servants: Servant[]) => {
     for (const s of servants) {
-      await withTimeout(setDoc(doc(db, 'servants', s.id), s));
+      await withTimeout(setDoc(doc(db, 'servants', s.id), cleanObject(s)));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   addServant: async (servant: Servant) => {
-    await withTimeout(setDoc(doc(db, 'servants', servant.id), servant));
+    await withTimeout(setDoc(doc(db, 'servants', servant.id), cleanObject(servant)));
   },
   updateServant: async (servant: Servant) => {
-    await withTimeout(setDoc(doc(db, 'servants', servant.id), servant));
+    await withTimeout(setDoc(doc(db, 'servants', servant.id), cleanObject(servant)));
   },
   deleteServant: async (id: string) => {
     await withTimeout(deleteDoc(doc(db, 'servants', id)));
@@ -279,17 +290,17 @@ export const storageService = {
   },
   saveMarathons: async (marathons: Marathon[]) => {
     for (const m of marathons) {
-      await withTimeout(setDoc(doc(db, 'marathons', m.id), m));
+      await withTimeout(setDoc(doc(db, 'marathons', m.id), cleanObject(m)));
     }
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
   addMarathon: async (marathon: Marathon) => {
-    await withTimeout(setDoc(doc(db, 'marathons', marathon.id), marathon));
+    await withTimeout(setDoc(doc(db, 'marathons', marathon.id), cleanObject(marathon)));
     window.dispatchEvent(new Event('storage_updated'));
   },
   updateMarathon: async (marathon: Marathon) => {
-    await withTimeout(setDoc(doc(db, 'marathons', marathon.id), marathon));
+    await withTimeout(setDoc(doc(db, 'marathons', marathon.id), cleanObject(marathon)));
     window.dispatchEvent(new Event('storage_updated'));
   },
 
