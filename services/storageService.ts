@@ -4,6 +4,57 @@ import { db, auth } from '../src/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, getDocsFromServer, query, where, limit } from 'firebase/firestore';
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 const CONFIG_KEY = 'church_db_config_v3';
 const SESSION_KEY = 'church_session_auth_v3';
 const SPECIAL_ACCESS_KEY = 'church_special_access_v3';
@@ -179,9 +230,14 @@ export const storageService = {
   },
 
   saveSingleAttendance: async (record: AttendanceRecord) => {
-    await withTimeout(setDoc(doc(db, 'attendance', record.id), record));
-    window.dispatchEvent(new Event('storage_updated'));
-    return true;
+    const path = `attendance/${record.id}`;
+    try {
+      await withTimeout(setDoc(doc(db, 'attendance', record.id), record));
+      window.dispatchEvent(new Event('storage_updated'));
+      return true;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
   },
 
   // Servant Methods

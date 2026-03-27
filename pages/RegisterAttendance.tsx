@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
-const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (val: string) => void }) => {
+const DateInput = ({ value, onChange, disabled }: { value: string | undefined, onChange: (val: string) => void, disabled?: boolean }) => {
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
 
@@ -39,8 +39,9 @@ const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (
   };
 
   return (
-    <div className="flex items-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-white focus-within:border-purple-400">
+    <div className={`flex items-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-white focus-within:border-purple-400 ${disabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}>
       <input 
+        disabled={disabled}
         type="number" 
         placeholder="يوم" 
         value={day}
@@ -49,6 +50,7 @@ const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (
       />
       <span className="text-slate-300">/</span>
       <input 
+        disabled={disabled}
         type="number" 
         placeholder="شهر" 
         value={month}
@@ -96,6 +98,9 @@ export const RegisterAttendance: React.FC = () => {
   }, [selectedDate]);
 
   const updateRecordField = async (personId: string, field: keyof AttendanceRecord, value: any, isServant: boolean) => {
+    if (loading) return;
+    setLoading(true);
+    
     const existingRecord = records.find(r => isServant ? r.servantId === personId : r.youthId === personId);
     let newRecord: AttendanceRecord;
 
@@ -149,26 +154,31 @@ export const RegisterAttendance: React.FC = () => {
         const pointSystem = activeMarathon.pointSystem;
         
         const updatePoint = async (activity: keyof typeof pointSystem, reason: string) => {
-          const existingPoint = await storageService.getSpecificMarathonPoint(
-            activeMarathon.id,
-            personId,
-            selectedDate,
-            activity as string
-          );
-          
-          if (value === true && !existingPoint) {
-            await storageService.addMarathonActivityPoints({
-              id: uuidv4(),
-              marathonId: activeMarathon.id,
-              youthId: personId,
-              weekDate: selectedDate,
-              activity: activity as keyof MarathonPointSystem,
-              points: pointSystem[activity],
-              reason,
-              timestamp: Date.now()
-            });
-          } else if (value === false && existingPoint) {
-            await storageService.deleteMarathonActivityPoint(existingPoint.id);
+          try {
+            const existingPoint = await storageService.getSpecificMarathonPoint(
+              activeMarathon.id,
+              personId,
+              selectedDate,
+              activity as string
+            );
+            
+            if (value === true && !existingPoint) {
+              await storageService.addMarathonActivityPoints({
+                id: uuidv4(),
+                marathonId: activeMarathon.id,
+                youthId: personId,
+                weekDate: selectedDate,
+                activity: activity as keyof MarathonPointSystem,
+                points: pointSystem[activity],
+                reason,
+                timestamp: Date.now()
+              });
+            } else if (value === false && existingPoint) {
+              await storageService.deleteMarathonActivityPoint(existingPoint.id);
+            }
+          } catch (err: any) {
+            console.error('Marathon point update error:', err);
+            toast.error(`فشل تحديث نقاط الماراثون: ${err.message || 'خطأ غير معروف'}`);
           }
         };
 
@@ -184,9 +194,13 @@ export const RegisterAttendance: React.FC = () => {
       }
     }
 
-    setLoading(true);
     try {
+      if (!newRecord.id || !newRecord.date) {
+        throw new Error('بيانات السجل غير مكتملة (ID or Date missing)');
+      }
+      
       await storageService.saveSingleAttendance(newRecord);
+      
       if (value === true) {
         const person = isServant ? servants.find(s => s.id === personId) : youth.find(y => y.id === personId);
         const label = field === 'liturgy' ? 'القداس' : 
@@ -200,13 +214,28 @@ export const RegisterAttendance: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error saving attendance:', error);
-      const errorMsg = error.message || 'خطأ غير معروف';
+      let errorMsg = error.message || 'خطأ غير معروف';
+      
+      // Try to parse if it's a JSON error from storageService
+      try {
+        if (errorMsg.startsWith('{')) {
+          const parsed = JSON.parse(errorMsg);
+          errorMsg = parsed.error || errorMsg;
+        }
+      } catch (e) {
+        // Not JSON, keep original
+      }
+      
       if (errorMsg.includes('Operation timed out')) {
         toast.error('فشل الحفظ: انتهى وقت المحاولة.. تأكد من استقرار الإنترنت');
       } else if (errorMsg.includes('Missing or insufficient permissions')) {
         toast.error('فشل الحفظ: ليس لديك صلاحية كافية.. تواصل مع المسؤول');
+      } else if (errorMsg.includes('the client is offline')) {
+        toast.error('فشل الحفظ: أنت غير متصل بالإنترنت حالياً');
       } else {
-        toast.error(`فشل حفظ البيانات: ${errorMsg}`);
+        toast.error(`فشل حفظ البيانات: ${errorMsg}`, {
+          duration: 5000
+        });
       }
     } finally {
       setLoading(false);
@@ -264,13 +293,13 @@ export const RegisterAttendance: React.FC = () => {
             <div className="p-8 bg-slate-50/50 border-t-2 border-slate-50 space-y-8 animate-in slide-in-from-top-4">
               {/* Status Grid */}
               <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-                <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
+                <StatusToggle disabled={loading} active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
                 <StatusToggle 
                   active={record?.communion} 
                   icon={Wine} 
                   label="تناول" 
                   color="rose" 
-                  disabled={!record?.liturgy}
+                  disabled={loading || !record?.liturgy}
                   onClick={() => {
                     if (record?.liturgy) {
                       updateRecordField(person.id, 'communion', !record?.communion, isServant);
@@ -282,18 +311,18 @@ export const RegisterAttendance: React.FC = () => {
                   icon={Shirt} 
                   label="تونية" 
                   color="indigo" 
-                  disabled={!record?.liturgy || !record?.communion}
+                  disabled={loading || !record?.liturgy || !record?.communion}
                   onClick={() => {
                     if (record?.liturgy && record?.communion) {
                       updateRecordField(person.id, 'tonia', !record?.tonia, isServant);
                     }
                   }} 
                 />
-                <StatusToggle active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(person.id, 'meeting', !record?.meeting, isServant)} />
+                <StatusToggle disabled={loading} active={record?.meeting} icon={Users} label="اجتماع" color="emerald" onClick={() => updateRecordField(person.id, 'meeting', !record?.meeting, isServant)} />
                 {!isServant && (
                   <>
-                    <StatusToggle active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(person.id, 'bibleReading', !record?.bibleReading, isServant)} />
-                    <StatusToggle active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(person.id, 'confession', !record?.confession, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.bibleReading} icon={BookOpen} label="قرأ الإنجيل" color="blue" onClick={() => updateRecordField(person.id, 'bibleReading', !record?.bibleReading, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.confession} icon={ShieldCheck} label="اعترف" color="purple" onClick={() => updateRecordField(person.id, 'confession', !record?.confession, isServant)} />
                   </>
                 )}
               </div>
@@ -302,13 +331,13 @@ export const RegisterAttendance: React.FC = () => {
                 <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                   <h5 className="font-black text-amber-800 mb-4 flex items-center gap-2"><Trophy size={18}/> نقاط الماراثون الإضافية</h5>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <StatusToggle active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
-                    <StatusToggle active={record?.communion} icon={Wine} label="تناول" color="rose" onClick={() => updateRecordField(person.id, 'communion', !record?.communion, isServant)} />
-                    <StatusToggle active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha, isServant)} />
-                    <StatusToggle active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting, isServant)} />
-                    <StatusToggle active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart, isServant)} />
-                    <StatusToggle active={record?.exodusCompetition} icon={Scroll} label="مسابقة سفر الخروج" color="amber" onClick={() => updateRecordField(person.id, 'exodusCompetition', !record?.exodusCompetition, isServant)} />
-                    <StatusToggle active={record?.weeklyCompetition} icon={Trophy} label="مسابقة الجمعة" color="purple" onClick={() => updateRecordField(person.id, 'weeklyCompetition', !record?.weeklyCompetition, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.liturgy} icon={Church} label="قداس" color="amber" onClick={() => updateRecordField(person.id, 'liturgy', !record?.liturgy, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.communion} icon={Wine} label="تناول" color="rose" onClick={() => updateRecordField(person.id, 'communion', !record?.communion, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.tasbeha} icon={Music} label="تسبحة" color="indigo" onClick={() => updateRecordField(person.id, 'tasbeha', !record?.tasbeha, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.fasting} icon={UtensilsCrossed} label="صوم" color="emerald" onClick={() => updateRecordField(person.id, 'fasting', !record?.fasting, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.memorizationPart} icon={Brain} label="حفظ" color="blue" onClick={() => updateRecordField(person.id, 'memorizationPart', !record?.memorizationPart, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.exodusCompetition} icon={Scroll} label="مسابقة سفر الخروج" color="amber" onClick={() => updateRecordField(person.id, 'exodusCompetition', !record?.exodusCompetition, isServant)} />
+                    <StatusToggle disabled={loading} active={record?.weeklyCompetition} icon={Trophy} label="مسابقة الجمعة" color="purple" onClick={() => updateRecordField(person.id, 'weeklyCompetition', !record?.weeklyCompetition, isServant)} />
                   </div>
                 </div>
               )}
@@ -321,6 +350,7 @@ export const RegisterAttendance: React.FC = () => {
                       <Clock size={14} className="text-emerald-500" /> وقت الاجتماع (ساعة : دقيقة)
                     </label>
                     <input 
+                      disabled={loading}
                       type="time" value={record?.meetingTime || ''} 
                       onChange={(e) => updateRecordField(person.id, 'meetingTime', e.target.value, isServant)}
                       className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold outline-none focus:border-emerald-400"
@@ -331,6 +361,7 @@ export const RegisterAttendance: React.FC = () => {
                       <ShieldCheck size={14} className="text-purple-500" /> اعترف مع مين؟
                     </label>
                     <input 
+                      disabled={loading}
                       type="text" 
                       placeholder="اسم أبونا..."
                       value={record?.confessorName || ''} 
@@ -343,6 +374,7 @@ export const RegisterAttendance: React.FC = () => {
                       <Calendar size={14} className="text-purple-500" /> تاريخ الاعتراف الفعلي
                     </label>
                     <DateInput 
+                      disabled={loading}
                       value={record?.confessionDate}
                       onChange={(val) => updateRecordField(person.id, 'confessionDate', val, isServant)}
                     />
