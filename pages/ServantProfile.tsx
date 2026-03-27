@@ -23,9 +23,13 @@ export const ServantProfile: React.FC = () => {
     liturgy: 0, meeting: 0, visitation: 0 
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSpecial, setIsSpecial] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
+      const special = await storageService.isSpecialAccess();
+      setIsSpecial(special);
+
       const allServants = await storageService.getServants();
       const found = allServants.find(s => s.id === id);
       if (found) {
@@ -75,8 +79,6 @@ export const ServantProfile: React.FC = () => {
       visitation: servantVisitations.length
     });
   };
-
-  const isSpecial = storageService.isSpecialAccess();
 
   if (!servant) return null;
   const attendanceRate = summary.totalFridays > 0 ? Math.round((summary.present / summary.totalFridays) * 100) : 0;

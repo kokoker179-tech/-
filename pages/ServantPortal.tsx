@@ -12,7 +12,11 @@ export const ServantPortal: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setServants(storageService.getServants());
+    const loadServants = async () => {
+      const s = await storageService.getServants();
+      setServants(s);
+    };
+    loadServants();
   }, []);
 
   const handleSearch = () => {

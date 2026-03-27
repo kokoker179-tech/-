@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UserPlus, Save, ArrowLeft, Camera, X, Hash, FileText, UploadCloud, ShieldCheck } from 'lucide-react';
+import { UserPlus, Save, ArrowLeft, Camera, X, Hash, FileText, UploadCloud, ShieldCheck, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import { storageService } from '../services/storageService';
 import { Youth } from '../types';
@@ -8,12 +8,11 @@ import { Youth } from '../types';
 export const AddYouth: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const config = storageService.getConfig();
+  const [config, setConfig] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     name: '',
-    grade: config.grades[0] || 'غير محدد',
+    grade: '',
     phone: '',
     image: '',
     pdfDoc: '',
@@ -27,7 +26,11 @@ export const AddYouth: React.FC = () => {
   });
 
   useEffect(() => {
-    const generateCode = async () => {
+    const init = async () => {
+      const c = await storageService.getConfig();
+      setConfig(c);
+      setFormData(prev => ({ ...prev, grade: c.grades[0] || 'غير محدد' }));
+      
       const youth = await storageService.getYouth();
       const existingCodes = youth.map(y => y.code);
       let newCode = '';
@@ -36,7 +39,7 @@ export const AddYouth: React.FC = () => {
       } while (existingCodes.includes(newCode));
       setFormData(prev => ({ ...prev, code: newCode }));
     };
-    generateCode();
+    init();
   }, []);
   const [success, setSuccess] = useState(false);
 
@@ -92,6 +95,14 @@ export const AddYouth: React.FC = () => {
         navigate('/youth-list');
     }, 1500);
   };
+
+  if (!config) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">

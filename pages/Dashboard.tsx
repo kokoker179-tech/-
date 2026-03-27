@@ -8,7 +8,7 @@ import { WeeklyStats, Youth, AttendanceRecord } from '../types';
 import { 
   CalendarDays, Sparkles, Clock, AlertTriangle, TrendingUp, 
   ShieldCheck, BookOpen, Heart, Church, Users, Award, 
-  ChevronLeft, BarChart3, Wine, Shirt
+  ChevronLeft, BarChart3, Wine, Shirt, Loader2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -47,6 +47,7 @@ interface ExtendedStats extends WeeklyStats {
 
 export const Dashboard: React.FC = () => {
   const [activeDate, setActiveDate] = useState(getActiveFriday());
+  const [config, setConfig] = useState<any>(null);
   const [stats, setStats] = useState<ExtendedStats>({ 
     totalToday: 0, totalLiturgy: 0, totalMeeting: 0, earlyBirds: 0,
     bibleReaders: 0, confessedToday: 0, visitedToday: 0, communionToday: 0,
@@ -68,6 +69,9 @@ export const Dashboard: React.FC = () => {
     const youthList = await storageService.getYouth();
     const servantsList = await storageService.getServants();
     const allRecords = await storageService.getAttendance();
+    const currentConfig = await storageService.getConfig();
+    setConfig(currentConfig);
+    
     const currentFri = activeDate;
     const recentFridays = getRecentFridays(6).reverse();
 
@@ -107,7 +111,7 @@ export const Dashboard: React.FC = () => {
     }).length;
 
     // توزيع المراحل الدراسية للحضور اليوم
-    const grades = storageService.getConfig().grades;
+    const grades = currentConfig.grades;
     const gDist = grades.map(g => ({
       name: g,
       value: todayRecords.filter(r => {
@@ -232,6 +236,14 @@ export const Dashboard: React.FC = () => {
     window.addEventListener('storage_updated', loadData);
     return () => window.removeEventListener('storage_updated', loadData);
   }, [activeDate]);
+
+  if (!config) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-10 font-['Cairo']">

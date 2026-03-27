@@ -80,7 +80,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar = false }) => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const [config, setConfig] = useState(storageService.getConfig());
+  const [config, setConfig] = useState<any>(null);
   const [theme, setTheme] = useState(storageService.getTheme());
   const [lang, setLang] = useState<Lang>(storageService.getLang());
 
@@ -98,11 +98,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
 
   useEffect(() => {
     updateUI();
-    const updateConfig = () => setConfig(storageService.getConfig());
-    window.addEventListener('storage_updated', updateConfig);
+    const loadConfig = async () => {
+      const c = await storageService.getConfig();
+      setConfig(c);
+    };
+    loadConfig();
+    
+    const onStorageUpdate = async () => {
+      const c = await storageService.getConfig();
+      setConfig(c);
+    };
+    
+    window.addEventListener('storage_updated', onStorageUpdate);
     window.addEventListener('ui_updated', updateUI);
     return () => {
-      window.removeEventListener('storage_updated', updateConfig);
+      window.removeEventListener('storage_updated', onStorageUpdate);
       window.removeEventListener('ui_updated', updateUI);
     };
   }, []);
@@ -155,6 +165,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, onLogout, hideSidebar 
       </button>
     </div>
   );
+
+  if (!config) {
+    return (
+      <div className="min-h-screen bg-[#fcfdfe] dark:bg-slate-950 flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
   if (hideSidebar) {
     return (

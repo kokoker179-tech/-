@@ -1,11 +1,21 @@
 
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
 import { db } from '../src/firebase';
-import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 
 const CONFIG_KEY = 'church_db_config_v3';
 const SESSION_KEY = 'church_session_auth_v3';
 const SPECIAL_ACCESS_KEY = 'church_special_access_v3';
+const DEVICE_ID_KEY = 'church_device_id_v3';
+
+const getDeviceId = () => {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = Math.random().toString(36).substr(2, 9);
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+};
 
 const DEFAULT_CONFIG: SystemConfig = {
   churchName: 'كنيسة الملاك روفائيل',
@@ -15,21 +25,49 @@ const DEFAULT_CONFIG: SystemConfig = {
 };
 
 export const storageService = {
-  isLoggedIn: (): boolean => localStorage.getItem(SESSION_KEY) === 'true',
-  isSpecialAccess: (): boolean => localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true',
-  setLoggedIn: (status: boolean, isSpecial: boolean = false) => {
+  isLoggedIn: async (): Promise<boolean> => {
+    try {
+      const deviceId = getDeviceId();
+      const docSnap = await getDoc(doc(db, 'sessions', deviceId));
+      return docSnap.exists() && docSnap.data().isLoggedIn === true;
+    } catch {
+      return localStorage.getItem(SESSION_KEY) === 'true';
+    }
+  },
+  isSpecialAccess: async (): Promise<boolean> => {
+    try {
+      const deviceId = getDeviceId();
+      const docSnap = await getDoc(doc(db, 'sessions', deviceId));
+      return docSnap.exists() && docSnap.data().isSpecialAccess === true;
+    } catch {
+      return localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true';
+    }
+  },
+  setLoggedIn: async (status: boolean, isSpecial: boolean = false) => {
+    const deviceId = getDeviceId();
     if (status) {
       localStorage.setItem(SESSION_KEY, 'true');
       if (isSpecial) localStorage.setItem(SPECIAL_ACCESS_KEY, 'true');
       else localStorage.removeItem(SPECIAL_ACCESS_KEY);
+      
+      await setDoc(doc(db, 'sessions', deviceId), {
+        isLoggedIn: true,
+        isSpecialAccess: isSpecial,
+        lastActive: new Date().toISOString()
+      });
     } else {
       localStorage.removeItem(SESSION_KEY);
       localStorage.removeItem(SPECIAL_ACCESS_KEY);
+      await deleteDoc(doc(db, 'sessions', deviceId));
     }
+    window.dispatchEvent(new Event('storage_updated'));
   },
-  logout: () => {
+  logout: async () => {
+    const deviceId = getDeviceId();
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(SPECIAL_ACCESS_KEY);
+    await deleteDoc(doc(db, 'sessions', deviceId));
+    window.dispatchEvent(new Event('storage_updated'));
   },
 
   getTheme: (): 'light' | 'dark' => (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
@@ -43,17 +81,20 @@ export const storageService = {
     window.dispatchEvent(new Event('ui_updated'));
   },
 
-  getConfig: (): SystemConfig => {
+  getConfig: async (): Promise<SystemConfig> => {
     try {
-      const saved = localStorage.getItem(CONFIG_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+      const querySnapshot = await getDocs(collection(db, 'config'));
+      if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].data() as SystemConfig;
+      }
+      return DEFAULT_CONFIG;
     } catch {
       return DEFAULT_CONFIG;
     }
   },
 
   saveConfig: async (config: SystemConfig): Promise<boolean> => {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    await setDoc(doc(db, 'config', 'main'), config);
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
@@ -203,19 +244,47 @@ export const storageService = {
   },
 
   resetAttendanceFromDate: async (date: string): Promise<boolean> => {
-    // This is complex with Firestore, requires querying and deleting
+    const querySnapshot = await getDocs(collection(db, 'attendance'));
+    const recordsToDelete = querySnapshot.docs.filter(doc => (doc.data() as AttendanceRecord).date >= date);
+    for (const record of recordsToDelete) {
+      await deleteDoc(doc(db, 'attendance', record.id));
+    }
+    window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
 
   wipeAllAttendance: async (): Promise<boolean> => {
+    const querySnapshot = await getDocs(collection(db, 'attendance'));
+    for (const record of querySnapshot.docs) {
+      await deleteDoc(doc(db, 'attendance', record.id));
+    }
+    window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
 
   wipeAllYouth: async (): Promise<boolean> => {
+    const querySnapshot = await getDocs(collection(db, 'youth'));
+    for (const youth of querySnapshot.docs) {
+      await deleteDoc(doc(db, 'youth', youth.id));
+    }
+    window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
 
   factoryReset: async () => {
+    await storageService.wipeAllAttendance();
+    await storageService.wipeAllYouth();
+    
+    const collections = ['servants', 'marathons', 'marathonGroups', 'marathonActivityPoints', 'servantAttendance', 'visitations'];
+    for (const coll of collections) {
+      const querySnapshot = await getDocs(collection(db, coll));
+      for (const d of querySnapshot.docs) {
+        await deleteDoc(doc(db, coll, d.id));
+      }
+    }
+    
+    localStorage.clear();
+    window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
 

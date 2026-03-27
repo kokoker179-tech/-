@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, ArrowRight, Edit3, Camera, X, FileText, UploadCloud } from 'lucide-react';
+import { Save, ArrowRight, Edit3, Camera, X, FileText, UploadCloud, Loader2 } from 'lucide-react';
 /* Fix: Use double quotes for react-router-dom imports */
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { storageService } from '../services/storageService';
@@ -11,11 +11,11 @@ export const EditYouth: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
-  const config = storageService.getConfig();
+  const [config, setConfig] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     name: '',
-    grade: config.grades[0] || 'غير محدد',
+    grade: '',
     phone: '',
     image: '',
     pdfDoc: '',
@@ -29,7 +29,10 @@ export const EditYouth: React.FC = () => {
   const [originalYouth, setOriginalYouth] = useState<Youth | null>(null);
 
   useEffect(() => {
-    const loadYouth = async () => {
+    const loadData = async () => {
+      const c = await storageService.getConfig();
+      setConfig(c);
+      
       const youthList = await storageService.getYouth();
       const found = youthList.find(y => y.id === id);
       if (found) {
@@ -50,7 +53,7 @@ export const EditYouth: React.FC = () => {
         navigate('/youth-list');
       }
     };
-    loadYouth();
+    loadData();
   }, [id, navigate]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,7 +125,13 @@ export const EditYouth: React.FC = () => {
     }, 1500);
   };
 
-  if (!originalYouth) return null;
+  if (!config || !originalYouth) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">

@@ -16,10 +16,19 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const config = storageService.getConfig();
+  const [config, setConfig] = useState<any>(null);
+
+  React.useEffect(() => {
+    const fetchConfig = async () => {
+      const c = await storageService.getConfig();
+      setConfig(c);
+    };
+    fetchConfig();
+  }, []);
 
   const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!config) return;
     setLoading(true);
     setError(null);
 
@@ -27,7 +36,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     if (password === config.adminPassword) {
       setSuccess(true);
-      storageService.setLoggedIn(true, false);
+      await storageService.setLoggedIn(true, false);
       setTimeout(() => {
         onLoginSuccess();
       }, 800);
@@ -46,7 +55,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     if (specialPassword === 'Mina##') {
       setSuccess(true);
-      storageService.setLoggedIn(true, true);
+      await storageService.setLoggedIn(true, true);
       setTimeout(() => {
         window.location.hash = '/special-follow-up';
         onLoginSuccess();
@@ -102,6 +111,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
     }, 800);
   };
+
+  if (!config) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#020617]">
+        <Loader2 className="animate-spin text-blue-500" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-['Cairo'] bg-[#020617]">

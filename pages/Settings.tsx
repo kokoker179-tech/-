@@ -10,10 +10,18 @@ import { SystemConfig } from '../types';
 
 export const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'grades' | 'security' | 'danger'>('general');
-  const [config, setConfig] = useState<SystemConfig>(storageService.getConfig());
+  const [config, setConfig] = useState<SystemConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [newGrade, setNewGrade] = useState('');
   const [status, setStatus] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const c = await storageService.getConfig();
+      setConfig(c);
+    };
+    fetchConfig();
+  }, []);
 
   const showStatus = (msg: string, type: 'success' | 'error' = 'success') => {
     setStatus({ msg, type });
@@ -21,6 +29,7 @@ export const Settings: React.FC = () => {
   };
 
   const handleSaveConfig = async () => {
+    if (!config) return;
     setIsSaving(true);
     const success = await storageService.saveConfig(config);
     setIsSaving(false);
@@ -29,6 +38,7 @@ export const Settings: React.FC = () => {
   };
 
   const addGrade = () => {
+    if (!config) return;
     if (newGrade && !config.grades.includes(newGrade)) {
       setConfig({ ...config, grades: [...config.grades, newGrade] });
       setNewGrade('');
@@ -36,6 +46,7 @@ export const Settings: React.FC = () => {
   };
 
   const removeGrade = (grade: string) => {
+    if (!config) return;
     setConfig({ ...config, grades: config.grades.filter(g => g !== grade) });
   };
 
@@ -113,6 +124,14 @@ export const Settings: React.FC = () => {
       <span>{label}</span>
     </button>
   );
+
+  if (!config) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto pb-24 font-['Cairo']">
@@ -220,11 +239,11 @@ export const Settings: React.FC = () => {
                   <p className="text-sm text-blue-700 font-bold mb-6">قم بتحميل نسخة من كافة البيانات للذكرى أو للانتقال لجهاز آخر.</p>
                   <div className="grid grid-cols-1 gap-3">
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         const data = {
-                          youth: storageService.getYouth(),
-                          attendance: storageService.getAttendance(),
-                          config: storageService.getConfig()
+                          youth: await storageService.getYouth(),
+                          attendance: await storageService.getAttendance(),
+                          config: await storageService.getConfig()
                         };
                         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);

@@ -389,12 +389,10 @@ export const YouthProfile: React.FC<YouthProfileProps> = ({ onLogout }) => {
               if (activeMarathon) {
                 const myGroup = groups.find(g => activeMarathon.groupIds.includes(g.id) && g.youthIds.includes(youth.id));
                 if (myGroup) {
-                  const allPoints = storageService.getMarathonActivityPoints();
                   const groupPoints = allPoints
                     .filter(p => p.marathonId === activeMarathon.id && myGroup.youthIds.includes(p.youthId))
                     .reduce((sum, p) => sum + p.points, 0);
                   
-                  const allYouth = storageService.getYouth();
                   const groupMembers = myGroup.youthIds
                     .map(id => allYouth.find(y => y.id === id)?.name)
                     .filter(Boolean)

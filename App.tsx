@@ -187,9 +187,11 @@ const App: React.FC = () => {
 
       if (currentStepCount >= steps) {
         clearInterval(timer);
-        storageService.syncFromCloud(true).finally(() => {
-          setIsAuthenticated(storageService.isLoggedIn());
-          setIsSpecialAccess(storageService.isSpecialAccess());
+        storageService.syncFromCloud(true).finally(async () => {
+          const loggedIn = await storageService.isLoggedIn();
+          const special = await storageService.isSpecialAccess();
+          setIsAuthenticated(loggedIn);
+          setIsSpecialAccess(special);
           setIsChecking(false);
         });
       }
@@ -198,8 +200,8 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogout = () => {
-    storageService.logout();
+  const handleLogout = async () => {
+    await storageService.logout();
     setIsAuthenticated(false);
     setIsSpecialAccess(false);
   };
