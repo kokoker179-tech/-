@@ -86,8 +86,7 @@ export const AddYouth: React.FC = () => {
       siblingsCount: formData.siblingsCount
     };
 
-    const currentYouth = await storageService.getYouth();
-    await storageService.saveYouth([...currentYouth, newYouth]);
+    await storageService.saveSingleYouth(newYouth);
 
     setSuccess(true);
     setTimeout(() => {

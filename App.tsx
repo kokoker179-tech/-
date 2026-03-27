@@ -289,9 +289,9 @@ const App: React.FC = () => {
       <RouteManager 
         isAuthenticated={isAuthenticated} 
         isSpecialAccess={isSpecialAccess}
-        onLoginSuccess={() => {
+        onLoginSuccess={async () => {
           setIsAuthenticated(true);
-          setIsSpecialAccess(storageService.isSpecialAccess());
+          setIsSpecialAccess(await storageService.isSpecialAccess());
         }} 
         handleLogout={handleLogout} 
       />

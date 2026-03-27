@@ -127,7 +127,7 @@ export const MarathonPage: React.FC = () => {
     setView('create');
   };
 
-  const handleConfirmCreate = () => {
+  const handleConfirmCreate = async () => {
     if (!newMarathonData.name || !newMarathonData.startDay || !newMarathonData.startMonth || !newMarathonData.endDay || !newMarathonData.endMonth) {
       alert('يرجى إكمال جميع البيانات');
       return;
@@ -145,7 +145,7 @@ export const MarathonPage: React.FC = () => {
       groupIds: [],
       active: true
     };
-    storageService.addMarathon(newMarathon);
+    await storageService.addMarathon(newMarathon);
     setActiveMarathon(newMarathon);
     setView('dashboard');
     setNewMarathonData({ name: '', startDay: '', startMonth: '', endDay: '', endMonth: '' });

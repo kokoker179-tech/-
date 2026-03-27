@@ -133,6 +133,11 @@ export const storageService = {
     window.dispatchEvent(new Event('storage_updated'));
     return true;
   },
+  saveSingleYouth: async (youth: Youth) => {
+    await setDoc(doc(db, 'youth', youth.id), youth);
+    window.dispatchEvent(new Event('storage_updated'));
+    return true;
+  },
 
   saveAttendance: async (records: AttendanceRecord[]) => {
     // This is inefficient for large datasets, but kept for bulk updates if needed
@@ -178,8 +183,13 @@ export const storageService = {
 
   // Marathon Methods
   getMarathons: async (): Promise<Marathon[]> => {
-    const querySnapshot = await getDocs(collection(db, 'marathons'));
-    return querySnapshot.docs.map(doc => doc.data() as Marathon);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'marathons')));
+      return querySnapshot.docs.map(doc => doc.data() as Marathon);
+    } catch (error) {
+      console.error('Error fetching marathons:', error);
+      return [];
+    }
   },
   saveMarathons: async (marathons: Marathon[]) => {
     for (const m of marathons) {
@@ -190,14 +200,21 @@ export const storageService = {
   },
   addMarathon: async (marathon: Marathon) => {
     await setDoc(doc(db, 'marathons', marathon.id), marathon);
+    window.dispatchEvent(new Event('storage_updated'));
   },
   updateMarathon: async (marathon: Marathon) => {
     await setDoc(doc(db, 'marathons', marathon.id), marathon);
+    window.dispatchEvent(new Event('storage_updated'));
   },
 
   getMarathonGroups: async (): Promise<MarathonGroup[]> => {
-    const querySnapshot = await getDocs(collection(db, 'marathonGroups'));
-    return querySnapshot.docs.map(doc => doc.data() as MarathonGroup);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'marathonGroups')));
+      return querySnapshot.docs.map(doc => doc.data() as MarathonGroup);
+    } catch (error) {
+      console.error('Error fetching marathon groups:', error);
+      return [];
+    }
   },
   saveMarathonGroups: async (groups: MarathonGroup[]) => {
     for (const g of groups) {
@@ -211,20 +228,37 @@ export const storageService = {
     const newGroup = { ...groupData, id };
     await setDoc(doc(db, 'marathonGroups', id), newGroup);
     
-    // Note: This logic needs to be updated to handle Firestore for marathon updates too
-    // For now, keeping it simple as per previous structure
+    // Update marathon document with new group ID
+    const marathonRef = doc(db, 'marathons', marathonId);
+    const marathonSnap = await getDoc(marathonRef);
+    if (marathonSnap.exists()) {
+      const marathon = marathonSnap.data() as Marathon;
+      await setDoc(marathonRef, {
+        ...marathon,
+        groupIds: [...(marathon.groupIds || []), id]
+      });
+    }
+    
+    window.dispatchEvent(new Event('storage_updated'));
     return newGroup;
   },
   updateMarathonGroup: async (group: MarathonGroup) => {
     await setDoc(doc(db, 'marathonGroups', group.id), group);
+    window.dispatchEvent(new Event('storage_updated'));
   },
   deleteMarathonGroup: async (groupId: string) => {
     await deleteDoc(doc(db, 'marathonGroups', groupId));
+    window.dispatchEvent(new Event('storage_updated'));
   },
 
   getMarathonActivityPoints: async (): Promise<MarathonActivityPoints[]> => {
-    const querySnapshot = await getDocs(collection(db, 'marathonActivityPoints'));
-    return querySnapshot.docs.map(doc => doc.data() as MarathonActivityPoints);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'marathonActivityPoints')));
+      return querySnapshot.docs.map(doc => doc.data() as MarathonActivityPoints);
+    } catch (error) {
+      console.error('Error fetching marathon points:', error);
+      return [];
+    }
   },
   saveMarathonActivityPoints: async (points: MarathonActivityPoints[]) => {
     for (const p of points) {
@@ -244,8 +278,13 @@ export const storageService = {
 
   // Special Follow-up Methods
   getServantAttendance: async (): Promise<ServantAttendance[]> => {
-    const querySnapshot = await getDocs(collection(db, 'servantAttendance'));
-    return querySnapshot.docs.map(doc => doc.data() as ServantAttendance);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'servantAttendance')));
+      return querySnapshot.docs.map(doc => doc.data() as ServantAttendance);
+    } catch (error) {
+      console.error('Error fetching servant attendance:', error);
+      return [];
+    }
   },
   saveServantAttendance: async (records: ServantAttendance[]) => {
     for (const r of records) {
@@ -255,8 +294,13 @@ export const storageService = {
     return true;
   },
   getVisitations: async (): Promise<Visitation[]> => {
-    const querySnapshot = await getDocs(collection(db, 'visitations'));
-    return querySnapshot.docs.map(doc => doc.data() as Visitation);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'visitations')));
+      return querySnapshot.docs.map(doc => doc.data() as Visitation);
+    } catch (error) {
+      console.error('Error fetching visitations:', error);
+      return [];
+    }
   },
   saveVisitations: async (visitations: Visitation[]) => {
     for (const v of visitations) {
@@ -267,9 +311,11 @@ export const storageService = {
   },
   addVisitation: async (visitation: Visitation) => {
     await setDoc(doc(db, 'visitations', visitation.id), visitation);
+    window.dispatchEvent(new Event('storage_updated'));
   },
   deleteVisitation: async (id: string) => {
     await deleteDoc(doc(db, 'visitations', id));
+    window.dispatchEvent(new Event('storage_updated'));
   },
 
   deleteAttendanceRecord: async (recordId: string): Promise<boolean> => {
