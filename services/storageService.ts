@@ -2,7 +2,7 @@
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
 import { db, auth } from '../src/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, getDocsFromServer } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, getDocsFromServer, query, where, limit } from 'firebase/firestore';
 
 const CONFIG_KEY = 'church_db_config_v3';
 const SESSION_KEY = 'church_session_auth_v3';
@@ -145,6 +145,17 @@ export const storageService = {
     }
   },
 
+  getAttendanceByDate: async (date: string): Promise<AttendanceRecord[]> => {
+    try {
+      const q = query(collection(db, 'attendance'), where('date', '==', date));
+      const querySnapshot = await withTimeout(getDocs(q));
+      return querySnapshot.docs.map(doc => doc.data() as AttendanceRecord);
+    } catch (error) {
+      console.error('Error fetching attendance by date:', error);
+      return [];
+    }
+  },
+
   saveYouth: async (youth: Youth[]) => {
     for (const y of youth) {
       await withTimeout(setDoc(doc(db, 'youth', y.id), y));
@@ -277,6 +288,25 @@ export const storageService = {
     } catch (error) {
       console.error('Error fetching marathon points:', error);
       return [];
+    }
+  },
+
+  getSpecificMarathonPoint: async (marathonId: string, youthId: string, weekDate: string, activity: string): Promise<MarathonActivityPoints | null> => {
+    try {
+      const q = query(
+        collection(db, 'marathonActivityPoints'), 
+        where('marathonId', '==', marathonId),
+        where('youthId', '==', youthId),
+        where('weekDate', '==', weekDate),
+        where('activity', '==', activity),
+        limit(1)
+      );
+      const querySnapshot = await withTimeout(getDocs(q));
+      if (querySnapshot.empty) return null;
+      return querySnapshot.docs[0].data() as MarathonActivityPoints;
+    } catch (error) {
+      console.error('Error fetching specific marathon point:', error);
+      return null;
     }
   },
   saveMarathonActivityPoints: async (points: MarathonActivityPoints[]) => {

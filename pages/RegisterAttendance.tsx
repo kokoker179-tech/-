@@ -78,8 +78,8 @@ export const RegisterAttendance: React.FC = () => {
     setLoading(true);
     setYouth(await storageService.getYouth());
     setServants(await storageService.getServants());
-    const allRecords = await storageService.getAttendance();
-    setRecords(allRecords.filter(r => r.date === selectedDate));
+    const dateRecords = await storageService.getAttendanceByDate(selectedDate);
+    setRecords(dateRecords);
     
     const allMarathons = await storageService.getMarathons();
     setMarathons(allMarathons);
@@ -149,13 +149,11 @@ export const RegisterAttendance: React.FC = () => {
         const pointSystem = activeMarathon.pointSystem;
         
         const updatePoint = async (activity: keyof typeof pointSystem, reason: string) => {
-          // Instead of fetching all points, we can query for the specific one
-          const points = await storageService.getMarathonActivityPoints();
-          const existingPoint = points.find(p => 
-            p.marathonId === activeMarathon.id && 
-            p.youthId === personId && 
-            p.weekDate === selectedDate && 
-            p.activity === activity
+          const existingPoint = await storageService.getSpecificMarathonPoint(
+            activeMarathon.id,
+            personId,
+            selectedDate,
+            activity as string
           );
           
           if (value === true && !existingPoint) {
