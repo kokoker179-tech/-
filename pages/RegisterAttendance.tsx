@@ -139,12 +139,6 @@ export const RegisterAttendance: React.FC = () => {
       newRecord.tonia = false;
     }
 
-    const allRecords = await storageService.getAttendance();
-    const idx = allRecords.findIndex(r => (isServant ? r.servantId === personId : r.youthId === personId) && r.date === selectedDate);
-    
-    if (idx > -1) allRecords[idx] = newRecord;
-    else allRecords.push(newRecord);
-
     // Auto-update Marathon Points if applicable
     if (!isServant && activeMarathon && activeMarathon.startDate <= selectedDate && activeMarathon.endDate >= selectedDate) {
       const userGroups = marathonGroups.filter(g => activeMarathon.groupIds.includes(g.id));
@@ -154,16 +148,17 @@ export const RegisterAttendance: React.FC = () => {
         const pointSystem = activeMarathon.pointSystem;
         
         const updatePoint = async (activity: keyof typeof pointSystem, reason: string) => {
+          // Instead of fetching all points, we can query for the specific one
           const points = await storageService.getMarathonActivityPoints();
-          const filteredPoints = points.filter(p => 
-            !(p.marathonId === activeMarathon.id && 
-              p.youthId === personId && 
-              p.weekDate === selectedDate && 
-              p.activity === activity)
+          const existingPoint = points.find(p => 
+            p.marathonId === activeMarathon.id && 
+            p.youthId === personId && 
+            p.weekDate === selectedDate && 
+            p.activity === activity
           );
           
-          if (value === true) {
-            filteredPoints.push({
+          if (value === true && !existingPoint) {
+            await storageService.addMarathonActivityPoints({
               id: uuidv4(),
               marathonId: activeMarathon.id,
               youthId: personId,
@@ -173,8 +168,9 @@ export const RegisterAttendance: React.FC = () => {
               reason,
               timestamp: Date.now()
             });
+          } else if (value === false && existingPoint) {
+            await storageService.deleteMarathonActivityPoint(existingPoint.id);
           }
-          await storageService.saveMarathonActivityPoints(filteredPoints);
         };
 
         if (field === 'liturgy') await updatePoint('liturgy', 'حضور القداس الإلهي');
@@ -190,8 +186,13 @@ export const RegisterAttendance: React.FC = () => {
     }
 
     setLoading(true);
-    await storageService.saveAttendance(allRecords);
-    setLoading(false);
+    try {
+      await storageService.saveSingleAttendance(newRecord);
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredYouth = youth.filter(y => y.name.toLowerCase().includes(searchTerm.toLowerCase()));

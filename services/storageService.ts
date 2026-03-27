@@ -1,12 +1,19 @@
 
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
 import { db } from '../src/firebase';
-import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, getDocsFromServer } from 'firebase/firestore';
 
 const CONFIG_KEY = 'church_db_config_v3';
 const SESSION_KEY = 'church_session_auth_v3';
 const SPECIAL_ACCESS_KEY = 'church_special_access_v3';
 const DEVICE_ID_KEY = 'church_device_id_v3';
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), timeoutMs))
+  ]);
+};
 
 const getDeviceId = () => {
   let id = localStorage.getItem(DEVICE_ID_KEY);
@@ -28,7 +35,7 @@ export const storageService = {
   isLoggedIn: async (): Promise<boolean> => {
     try {
       const deviceId = getDeviceId();
-      const docSnap = await getDoc(doc(db, 'sessions', deviceId));
+      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', deviceId)), 5000);
       return docSnap.exists() && docSnap.data().isLoggedIn === true;
     } catch {
       return localStorage.getItem(SESSION_KEY) === 'true';
@@ -37,7 +44,7 @@ export const storageService = {
   isSpecialAccess: async (): Promise<boolean> => {
     try {
       const deviceId = getDeviceId();
-      const docSnap = await getDoc(doc(db, 'sessions', deviceId));
+      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', deviceId)), 5000);
       return docSnap.exists() && docSnap.data().isSpecialAccess === true;
     } catch {
       return localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true';
@@ -83,12 +90,13 @@ export const storageService = {
 
   getConfig: async (): Promise<SystemConfig> => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'config'));
-      if (!querySnapshot.empty) {
-        return querySnapshot.docs[0].data() as SystemConfig;
+      const configDoc = await withTimeout(getDoc(doc(db, 'config', 'main')));
+      if (configDoc.exists()) {
+        return configDoc.data() as SystemConfig;
       }
       return DEFAULT_CONFIG;
-    } catch {
+    } catch (error) {
+      console.error('Error fetching config:', error);
       return DEFAULT_CONFIG;
     }
   },
@@ -100,12 +108,22 @@ export const storageService = {
   },
 
   getYouth: async (): Promise<Youth[]> => {
-    const querySnapshot = await getDocs(collection(db, 'youth'));
-    return querySnapshot.docs.map(doc => doc.data() as Youth);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'youth')));
+      return querySnapshot.docs.map(doc => doc.data() as Youth);
+    } catch (error) {
+      console.error('Error fetching youth:', error);
+      return [];
+    }
   },
   getAttendance: async (): Promise<AttendanceRecord[]> => {
-    const querySnapshot = await getDocs(collection(db, 'attendance'));
-    return querySnapshot.docs.map(doc => doc.data() as AttendanceRecord);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'attendance')));
+      return querySnapshot.docs.map(doc => doc.data() as AttendanceRecord);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      return [];
+    }
   },
 
   saveYouth: async (youth: Youth[]) => {
@@ -117,6 +135,7 @@ export const storageService = {
   },
 
   saveAttendance: async (records: AttendanceRecord[]) => {
+    // This is inefficient for large datasets, but kept for bulk updates if needed
     for (const r of records) {
       await setDoc(doc(db, 'attendance', r.id), r);
     }
@@ -124,10 +143,21 @@ export const storageService = {
     return true;
   },
 
+  saveSingleAttendance: async (record: AttendanceRecord) => {
+    await setDoc(doc(db, 'attendance', record.id), record);
+    window.dispatchEvent(new Event('storage_updated'));
+    return true;
+  },
+
   // Servant Methods
   getServants: async (): Promise<Servant[]> => {
-    const querySnapshot = await getDocs(collection(db, 'servants'));
-    return querySnapshot.docs.map(doc => doc.data() as Servant);
+    try {
+      const querySnapshot = await withTimeout(getDocs(collection(db, 'servants')));
+      return querySnapshot.docs.map(doc => doc.data() as Servant);
+    } catch (error) {
+      console.error('Error fetching servants:', error);
+      return [];
+    }
   },
   saveServants: async (servants: Servant[]) => {
     for (const s of servants) {
@@ -205,6 +235,11 @@ export const storageService = {
   },
   addMarathonActivityPoints: async (point: MarathonActivityPoints) => {
     await setDoc(doc(db, 'marathonActivityPoints', point.id), point);
+    window.dispatchEvent(new Event('storage_updated'));
+  },
+  deleteMarathonActivityPoint: async (id: string) => {
+    await deleteDoc(doc(db, 'marathonActivityPoints', id));
+    window.dispatchEvent(new Event('storage_updated'));
   },
 
   // Special Follow-up Methods
@@ -299,6 +334,21 @@ export const storageService = {
   },
 
   syncFromCloud: async (force = false) => {
-    return { success: true };
+    window.dispatchEvent(new Event('sync_started'));
+    try {
+      // Force fetch the most critical data from server to refresh cache
+      await getDocFromServer(doc(db, 'config', 'main'));
+      await getDocsFromServer(collection(db, 'youth'));
+      await getDocsFromServer(collection(db, 'attendance'));
+      
+      localStorage.setItem('church_db_last_sync_v3', new Date().toLocaleString('ar-EG'));
+      window.dispatchEvent(new Event('storage_updated'));
+      window.dispatchEvent(new Event('sync_ended'));
+      return { success: true };
+    } catch (error) {
+      console.error('Sync error:', error);
+      window.dispatchEvent(new Event('sync_error'));
+      return { success: false };
+    }
   }
 };

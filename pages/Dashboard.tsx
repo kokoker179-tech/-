@@ -66,169 +66,177 @@ export const Dashboard: React.FC = () => {
   const recentFridaysList = getRecentFridays(12);
 
   const loadData = async () => {
-    const youthList = await storageService.getYouth();
-    const servantsList = await storageService.getServants();
-    const allRecords = await storageService.getAttendance();
-    const currentConfig = await storageService.getConfig();
-    setConfig(currentConfig);
-    
-    const currentFri = activeDate;
-    const recentFridays = getRecentFridays(6).reverse();
+    try {
+      const youthList = await storageService.getYouth();
+      const servantsList = await storageService.getServants();
+      const allRecords = await storageService.getAttendance();
+      const currentConfig = await storageService.getConfig();
+      setConfig(currentConfig);
+      
+      const currentFri = activeDate;
+      const recentFridays = getRecentFridays(6).reverse();
 
-    const todayRecords = allRecords.filter(r => r.date === currentFri && (r.liturgy || r.meeting));
-    
-    // إحصائيات اليوم المحدد
-    const early = todayRecords.filter(r => r.liturgyTime && r.liturgyTime < "08:15").length;
-    
-    // الاتجاه العام للحضور (آخر 6 أسابيع)
-    const trend = recentFridays.map(date => ({
-      date: date.split('-').slice(1).join('/'),
-      count: allRecords.filter(r => r.date === date && (r.liturgy || r.meeting)).length
-    }));
+      const todayRecords = allRecords.filter(r => r.date === currentFri && (r.liturgy || r.meeting));
+      
+      // إحصائيات اليوم المحدد
+      const early = todayRecords.filter(r => r.liturgyTime && r.liturgyTime < "08:15").length;
+      
+      // الاتجاه العام للحضور (آخر 6 أسابيع)
+      const trend = recentFridays.map(date => ({
+        date: date.split('-').slice(1).join('/'),
+        count: allRecords.filter(r => r.date === date && (r.liturgy || r.meeting)).length
+      }));
 
-    // حساب المتوسطات طويلة المدى (بناءً على الأسابيع المتاحة منذ بدء النظام)
-    const longTermFridays = getRecentFridays(8);
-    const weeksCount = longTermFridays.length || 1;
-    const ltRecords = allRecords.filter(r => longTermFridays.includes(r.date));
-    const avgAtt = ltRecords.filter(r => r.liturgy || r.meeting).length / weeksCount;
-    const avgLit = ltRecords.filter(r => r.liturgy).length / weeksCount;
-    const avgMeet = ltRecords.filter(r => r.meeting).length / weeksCount;
-    const avgBib = ltRecords.filter(r => r.bibleReading).length / weeksCount;
-    const avgConf = ltRecords.filter(r => r.confession).length / weeksCount;
-    const avgVis = ltRecords.filter(r => r.visitation).length / weeksCount;
-    const avgCom = ltRecords.filter(r => r.communion).length / weeksCount;
-    const avgTon = ltRecords.filter(r => r.tonia).length / weeksCount;
+      // حساب المتوسطات طويلة المدى (بناءً على الأسابيع المتاحة منذ بدء النظام)
+      const longTermFridays = getRecentFridays(8);
+      const weeksCount = longTermFridays.length || 1;
+      const ltRecords = allRecords.filter(r => longTermFridays.includes(r.date));
+      const avgAtt = ltRecords.filter(r => r.liturgy || r.meeting).length / weeksCount;
+      const avgLit = ltRecords.filter(r => r.liturgy).length / weeksCount;
+      const avgMeet = ltRecords.filter(r => r.meeting).length / weeksCount;
+      const avgBib = ltRecords.filter(r => r.bibleReading).length / weeksCount;
+      const avgConf = ltRecords.filter(r => r.confession).length / weeksCount;
+      const avgVis = ltRecords.filter(r => r.visitation).length / weeksCount;
+      const avgCom = ltRecords.filter(r => r.communion).length / weeksCount;
+      const avgTon = ltRecords.filter(r => r.tonia).length / weeksCount;
 
-    // الشباب الجدد (آخر 30 يوم)
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    const newYouth = youthList.filter(y => y.addedAt && y.addedAt > thirtyDaysAgo).length;
+      // الشباب الجدد (آخر 30 يوم)
+      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      const newYouth = youthList.filter(y => y.addedAt && y.addedAt > thirtyDaysAgo).length;
 
-    // نسبة الاستمرارية (حضروا 3 من آخر 4 أسابيع)
-    const last4Fridays = getRecentFridays(4);
-    const regularYouth = youthList.filter(y => {
-      const attendanceCount = allRecords.filter(r => r.youthId === y.id && last4Fridays.includes(r.date) && (r.liturgy || r.meeting)).length;
-      return attendanceCount >= 3;
-    }).length;
+      // نسبة الاستمرارية (حضروا 3 من آخر 4 أسابيع)
+      const last4Fridays = getRecentFridays(4);
+      const regularYouth = youthList.filter(y => {
+        const attendanceCount = allRecords.filter(r => r.youthId === y.id && last4Fridays.includes(r.date) && (r.liturgy || r.meeting)).length;
+        return attendanceCount >= 3;
+      }).length;
 
-    // توزيع المراحل الدراسية للحضور اليوم
-    const grades = currentConfig.grades;
-    const gDist = grades.map(g => ({
-      name: g,
-      value: todayRecords.filter(r => {
-        const y = youthList.find(youth => youth.id === r.youthId);
-        return y?.grade === g;
-      }).length
-    }));
+      // توزيع المراحل الدراسية للحضور اليوم
+      const grades = currentConfig.grades;
+      const gDist = grades.map(g => ({
+        name: g,
+        value: todayRecords.filter(r => {
+          const y = youthList.find(youth => youth.id === r.youthId);
+          return y?.grade === g;
+        }).length
+      }));
 
-    // توزيع المناطق للحضور اليوم
-    const regions = ["ترعة عبد العال", "منطقة الكنيسة والتقسيم", "منطقة الملكة", "منطقة أبو زيد"];
-    const rDist = regions.map(r => ({
-      name: r,
-      value: todayRecords.filter(rec => {
-        const y = youthList.find(youth => youth.id === rec.youthId);
-        // Handle backward compatibility for old records
-        if (r === "منطقة الكنيسة والتقسيم") {
-          return y?.region === "منطقة الكنيسة والتقسيم" || y?.region === "منطقة الكنيسة" || y?.region === "التقسيم";
-        }
-        if (r === "ترعة عبد العال") {
-          return y?.region === "ترعة عبد العال" || y?.region === "منطقة ترعة عبد العال" || y?.region === "ترعة عبد العال 1" || y?.region === "ترعة عبد العال 2";
-        }
-        return y?.region === r;
-      }).length
-    }));
+      // توزيع المناطق للحضور اليوم
+      const regions = ["ترعة عبد العال", "منطقة الكنيسة والتقسيم", "منطقة الملكة", "منطقة أبو زيد"];
+      const rDist = regions.map(r => ({
+        name: r,
+        value: todayRecords.filter(rec => {
+          const y = youthList.find(youth => youth.id === rec.youthId);
+          // Handle backward compatibility for old records
+          if (r === "منطقة الكنيسة والتقسيم") {
+            return y?.region === "منطقة الكنيسة والتقسيم" || y?.region === "منطقة الكنيسة" || y?.region === "التقسيم";
+          }
+          if (r === "ترعة عبد العال") {
+            return y?.region === "ترعة عبد العال" || y?.region === "منطقة ترعة عبد العال" || y?.region === "ترعة عبد العال 1" || y?.region === "ترعة عبد العال 2";
+          }
+          return y?.region === r;
+        }).length
+      }));
 
-    const liturgyOnlyRecs = todayRecords.filter(r => r.liturgy && !r.communion && !r.tonia);
-    const liturgyAndCommunionRecs = todayRecords.filter(r => r.liturgy && r.communion && !r.tonia);
-    const liturgyCommunionToniaRecs = todayRecords.filter(r => r.liturgy && r.communion && r.tonia);
+      const liturgyOnlyRecs = todayRecords.filter(r => r.liturgy && !r.communion && !r.tonia);
+      const liturgyAndCommunionRecs = todayRecords.filter(r => r.liturgy && r.communion && !r.tonia);
+      const liturgyCommunionToniaRecs = todayRecords.filter(r => r.liturgy && r.communion && r.tonia);
 
-    const mapToYouth = (recs: AttendanceRecord[]) => recs.map(r => youthList.find(y => y.id === r.youthId)).filter(Boolean) as Youth[];
+      const mapToYouth = (recs: AttendanceRecord[]) => recs.map(r => youthList.find(y => y.id === r.youthId)).filter(Boolean) as Youth[];
 
-    // حساب نسبة الالتزام للأسبوع المحدد بناءً على نظام النقاط
-    let totalEarnedPoints = 0;
-    const maxPoints = youthList.length * 2; // الأساس: قداس واجتماع لكل شاب
-    
-    todayRecords.forEach(r => {
-      const liturgy = r.liturgy ? 1 : 0;
-      const meeting = r.meeting ? 1 : 0;
-      const communion = r.communion ? 0.5 : 0;
-      const confession = r.confession ? 0.5 : 0;
-      const bible = r.bibleReading ? 0.5 : 0;
-      totalEarnedPoints += liturgy + meeting + communion + confession + bible;
-    });
-    
-    const weeklyCommitmentRate = maxPoints > 0 ? Math.min(100, Math.round((totalEarnedPoints / maxPoints) * 100)) : 0;
+      // حساب نسبة الالتزام للأسبوع المحدد بناءً على نظام النقاط
+      let totalEarnedPoints = 0;
+      const maxPoints = youthList.length * 2; // الأساس: قداس واجتماع لكل شاب
+      
+      todayRecords.forEach(r => {
+        const liturgy = r.liturgy ? 1 : 0;
+        const meeting = r.meeting ? 1 : 0;
+        const communion = r.communion ? 0.5 : 0;
+        const confession = r.confession ? 0.5 : 0;
+        const bible = r.bibleReading ? 0.5 : 0;
+        totalEarnedPoints += liturgy + meeting + communion + confession + bible;
+      });
+      
+      const weeklyCommitmentRate = maxPoints > 0 ? Math.min(100, Math.round((totalEarnedPoints / maxPoints) * 100)) : 0;
 
-    setStats({
-      totalToday: todayRecords.length,
-      totalLiturgy: todayRecords.filter(r => r.liturgy).length,
-      totalMeeting: todayRecords.filter(r => r.meeting).length,
-      earlyBirds: early,
-      bibleReaders: todayRecords.filter(r => r.bibleReading).length,
-      confessedToday: todayRecords.filter(r => r.confession).length,
-      visitedToday: todayRecords.filter(r => r.visitation).length,
-      communionToday: todayRecords.filter(r => r.communion).length,
-      attendanceTrend: trend,
-      totalYouth: youthList.length,
-      totalServants: servantsList.length,
-      absentToday: Math.max(0, youthList.length - todayRecords.length),
-      newYouthMonth: newYouth,
-      weeklyCommitmentRate,
-      gradeDistribution: gDist,
-      regionDistribution: rDist,
-      avgAttendance: avgAtt,
-      avgLiturgy: avgLit,
-      avgMeeting: avgMeet,
-      avgBible: avgBib,
-      avgConfession: avgConf,
-      avgVisitation: avgVis,
-      avgCommunion: avgCom,
-      avgTonia: avgTon,
-      liturgyOnlyToday: liturgyOnlyRecs.length,
-      liturgyAndCommunionToday: liturgyAndCommunionRecs.length,
-      liturgyCommunionToniaToday: liturgyCommunionToniaRecs.length,
-      liturgyOnlyList: mapToYouth(liturgyOnlyRecs),
-      liturgyAndCommunionList: mapToYouth(liturgyAndCommunionRecs),
-      liturgyCommunionToniaList: mapToYouth(liturgyCommunionToniaRecs)
-    });
+      setStats({
+        totalToday: todayRecords.length,
+        totalLiturgy: todayRecords.filter(r => r.liturgy).length,
+        totalMeeting: todayRecords.filter(r => r.meeting).length,
+        earlyBirds: early,
+        bibleReaders: todayRecords.filter(r => r.bibleReading).length,
+        confessedToday: todayRecords.filter(r => r.confession).length,
+        visitedToday: todayRecords.filter(r => r.visitation).length,
+        communionToday: todayRecords.filter(r => r.communion).length,
+        attendanceTrend: trend,
+        totalYouth: youthList.length,
+        totalServants: servantsList.length,
+        absentToday: Math.max(0, youthList.length - todayRecords.length),
+        newYouthMonth: newYouth,
+        weeklyCommitmentRate,
+        gradeDistribution: gDist,
+        regionDistribution: rDist,
+        avgAttendance: avgAtt,
+        avgLiturgy: avgLit,
+        avgMeeting: avgMeet,
+        avgBible: avgBib,
+        avgConfession: avgConf,
+        avgVisitation: avgVis,
+        avgCommunion: avgCom,
+        avgTonia: avgTon,
+        liturgyOnlyToday: liturgyOnlyRecs.length,
+        liturgyAndCommunionToday: liturgyAndCommunionRecs.length,
+        liturgyCommunionToniaToday: liturgyCommunionToniaRecs.length,
+        liturgyOnlyList: mapToYouth(liturgyOnlyRecs),
+        liturgyAndCommunionList: mapToYouth(liturgyAndCommunionRecs),
+        liturgyCommunionToniaList: mapToYouth(liturgyCommunionToniaRecs)
+      });
 
-    // تنبيهات الاعتراف (الذين لم يعترفوا في آخر شهر)
-    const lastFourWeeks = getRecentFridays(4);
-    const cAlerts = youthList.filter(y => {
-      const hasConfessedRecently = allRecords.some(r => r.youthId === y.id && (r.confession || r.confessionDate) && lastFourWeeks.includes(r.date));
-      return !hasConfessedRecently;
-    }).slice(0, 10);
-    
-    setConfessionAlerts(cAlerts);
+      // تنبيهات الاعتراف (الذين لم يعترفوا في آخر شهر)
+      const lastFourWeeks = getRecentFridays(4);
+      const cAlerts = youthList.filter(y => {
+        const hasConfessedRecently = allRecords.some(r => r.youthId === y.id && (r.confession || r.confessionDate) && lastFourWeeks.includes(r.date));
+        return !hasConfessedRecently;
+      }).slice(0, 10);
+      
+      setConfessionAlerts(cAlerts);
 
-    // تنبيهات الافتقاد (الذين لم يتم افتقادهم في آخر أسبوعين)
-    const lastTwoWeeks = getRecentFridays(2);
-    const vAlerts = youthList.filter(y => {
-      const wasVisited = allRecords.some(r => r.youthId === y.id && r.visitation && lastTwoWeeks.includes(r.date));
-      return !wasVisited;
-    }).slice(0, 10);
+      // تنبيهات الافتقاد (الذين لم يتم افتقادهم في آخر أسبوعين)
+      const lastTwoWeeks = getRecentFridays(2);
+      const vAlerts = youthList.filter(y => {
+        const wasVisited = allRecords.some(r => r.youthId === y.id && r.visitation && lastTwoWeeks.includes(r.date));
+        return !wasVisited;
+      }).slice(0, 10);
 
-    setVisitationAlerts(vAlerts);
+      setVisitationAlerts(vAlerts);
 
-    // تنبيهات الحضور (الذين غابوا عن الجمعة المختارة)
-    const attendeesIds = todayRecords.map(r => r.youthId);
-    const aAlerts = youthList.filter(y => !attendeesIds.includes(y.id)).slice(0, 10);
-    setAttendanceAlerts(aAlerts);
+      // تنبيهات الحضور (الذين غابوا عن الجمعة المختارة)
+      const attendeesIds = todayRecords.map(r => r.youthId);
+      const aAlerts = youthList.filter(y => !attendeesIds.includes(y.id)).slice(0, 10);
+      setAttendanceAlerts(aAlerts);
 
-    // تنبيهات التناول (الذين حضروا القداس ولم يتناولوا)
-    const ncAlerts = youthList.filter(y => {
-      const rec = todayRecords.find(r => r.youthId === y.id);
-      return rec?.liturgy && !rec?.communion;
-    }).slice(0, 10);
-    setNoCommunionAlerts(ncAlerts);
+      // تنبيهات التناول (الذين حضروا القداس ولم يتناولوا)
+      const ncAlerts = youthList.filter(y => {
+        const rec = todayRecords.find(r => r.youthId === y.id);
+        return rec?.liturgy && !rec?.communion;
+      }).slice(0, 10);
+      setNoCommunionAlerts(ncAlerts);
 
-    // تنبيهات الغياب المتكرر (أسبوعين متتاليين)
-    const lastTwoFridays = getRecentFridays(2);
-    const caAlerts = lastTwoFridays.length === 2 ? youthList.filter(y => {
-      const wasPresentWeek1 = allRecords.some(r => r.youthId === y.id && r.date === lastTwoFridays[0] && (r.liturgy || r.meeting));
-      const wasPresentWeek2 = allRecords.some(r => r.youthId === y.id && r.date === lastTwoFridays[1] && (r.liturgy || r.meeting));
-      return !wasPresentWeek1 && !wasPresentWeek2;
-    }).slice(0, 10) : [];
-    setConsecutiveAbsenceAlerts(caAlerts);
+      // تنبيهات الغياب المتكرر (أسبوعين متتاليين)
+      const lastTwoFridays = getRecentFridays(2);
+      const caAlerts = lastTwoFridays.length === 2 ? youthList.filter(y => {
+        const wasPresentWeek1 = allRecords.some(r => r.youthId === y.id && r.date === lastTwoFridays[0] && (r.liturgy || r.meeting));
+        const wasPresentWeek2 = allRecords.some(r => r.youthId === y.id && r.date === lastTwoFridays[1] && (r.liturgy || r.meeting));
+        return !wasPresentWeek1 && !wasPresentWeek2;
+      }).slice(0, 10) : [];
+      setConsecutiveAbsenceAlerts(caAlerts);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Fallback config if it fails
+      if (!config) {
+        setConfig({ grades: [] });
+      }
+    }
   };
 
   useEffect(() => {
