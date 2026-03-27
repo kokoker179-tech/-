@@ -152,7 +152,9 @@ const SyncIndicator = () => {
 };
 
 import { auth } from './src/firebase';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+
+import { Toaster } from 'sonner';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -191,13 +193,6 @@ const App: React.FC = () => {
       if (currentStepCount >= steps) {
         clearInterval(timer);
         
-        // Try to sign in anonymously in background
-        signInAnonymously(auth).catch(err => {
-          if (err.code !== 'auth/admin-restricted-operation') {
-            console.error('Auth error:', err);
-          }
-        });
-
         storageService.syncFromCloud(true).finally(async () => {
           const loggedIn = await storageService.isLoggedIn();
           const special = await storageService.isSpecialAccess();
@@ -299,6 +294,7 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
+      <Toaster position="top-center" richColors />
       <RouteManager 
         isAuthenticated={isAuthenticated} 
         isSpecialAccess={isSpecialAccess}

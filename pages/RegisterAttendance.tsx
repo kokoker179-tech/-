@@ -10,6 +10,7 @@ import { getActiveFriday, formatDateArabic, getAllFridaysSinceStart } from '../c
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const DateInput = ({ value, onChange }: { value: string | undefined, onChange: (val: string) => void }) => {
   const [day, setDay] = useState('');
@@ -188,8 +189,20 @@ export const RegisterAttendance: React.FC = () => {
     setLoading(true);
     try {
       await storageService.saveSingleAttendance(newRecord);
+      if (value === true) {
+        const person = isServant ? servants.find(s => s.id === personId) : youth.find(y => y.id === personId);
+        const label = field === 'liturgy' ? 'القداس' : 
+                      field === 'meeting' ? 'الاجتماع' : 
+                      field === 'confession' ? 'الاعتراف' : 
+                      field === 'communion' ? 'التناول' : 'الحضور';
+        toast.success(`تم تسجيل ${label} لـ ${person?.name || 'الشاب'}`, {
+          duration: 2000,
+          position: 'top-center'
+        });
+      }
     } catch (error) {
       console.error('Error saving attendance:', error);
+      toast.error('فشل حفظ البيانات.. تأكد من الاتصال بالإنترنت');
     } finally {
       setLoading(false);
     }

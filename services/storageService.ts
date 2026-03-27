@@ -9,7 +9,7 @@ const SESSION_KEY = 'church_session_auth_v3';
 const SPECIAL_ACCESS_KEY = 'church_special_access_v3';
 const DEVICE_ID_KEY = 'church_device_id_v3';
 
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 20000): Promise<T> => {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), timeoutMs))
@@ -35,8 +35,9 @@ const DEFAULT_CONFIG: SystemConfig = {
 export const storageService = {
   isLoggedIn: async (): Promise<boolean> => {
     try {
-      if (!auth.currentUser) return localStorage.getItem(SESSION_KEY) === 'true';
-      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', auth.currentUser.uid)), 5000);
+      const deviceId = getDeviceId();
+      const sessionId = auth.currentUser ? auth.currentUser.uid : deviceId;
+      const docSnap = await withTimeout(getDocFromServer(doc(db, 'sessions', sessionId)), 5000);
       return docSnap.exists() && docSnap.data().isLoggedIn === true;
     } catch {
       return localStorage.getItem(SESSION_KEY) === 'true';
@@ -44,8 +45,9 @@ export const storageService = {
   },
   isSpecialAccess: async (): Promise<boolean> => {
     try {
-      if (!auth.currentUser) return localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true';
-      const docSnap = await withTimeout(getDoc(doc(db, 'sessions', auth.currentUser.uid)), 5000);
+      const deviceId = getDeviceId();
+      const sessionId = auth.currentUser ? auth.currentUser.uid : deviceId;
+      const docSnap = await withTimeout(getDocFromServer(doc(db, 'sessions', sessionId)), 5000);
       return docSnap.exists() && docSnap.data().isSpecialAccess === true;
     } catch {
       return localStorage.getItem(SPECIAL_ACCESS_KEY) === 'true';
@@ -398,18 +400,35 @@ export const storageService = {
 
   syncFromCloud: async (force = false) => {
     window.dispatchEvent(new Event('sync_started'));
+    console.log('Starting sync from cloud...');
     try {
       // Force fetch the most critical data from server to refresh cache
+      console.log('Fetching config...');
       await getDocFromServer(doc(db, 'config', 'main'));
+      console.log('Fetching youth...');
       await getDocsFromServer(collection(db, 'youth'));
+      console.log('Fetching attendance...');
       await getDocsFromServer(collection(db, 'attendance'));
+      console.log('Fetching marathons...');
+      await getDocsFromServer(collection(db, 'marathons'));
+      console.log('Fetching marathonGroups...');
+      await getDocsFromServer(collection(db, 'marathonGroups'));
+      console.log('Fetching marathonActivityPoints...');
+      await getDocsFromServer(collection(db, 'marathonActivityPoints'));
+      console.log('Fetching servants...');
+      await getDocsFromServer(collection(db, 'servants'));
+      console.log('Fetching servantAttendance...');
+      await getDocsFromServer(collection(db, 'servantAttendance'));
+      console.log('Fetching visitations...');
+      await getDocsFromServer(collection(db, 'visitations'));
       
       localStorage.setItem('church_db_last_sync_v3', new Date().toLocaleString('ar-EG'));
       window.dispatchEvent(new Event('storage_updated'));
       window.dispatchEvent(new Event('sync_ended'));
+      console.log('Sync completed successfully.');
       return { success: true };
     } catch (error) {
-      console.error('Sync error:', error);
+      console.error('Sync error details:', error);
       window.dispatchEvent(new Event('sync_error'));
       return { success: false };
     }

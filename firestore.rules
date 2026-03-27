@@ -16,8 +16,7 @@ service cloud.firestore {
 
     // Public config
     match /config/{configId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     // Sessions (for device tracking)

@@ -1,9 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UserPlus, Save, ArrowLeft, Camera, X, Hash, FileText, UploadCloud, ShieldCheck, Loader2 } from 'lucide-react';
+import { UserPlus, Save, ArrowLeft, Camera, X, Hash, FileText, UploadCloud, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import { storageService } from '../services/storageService';
 import { Youth } from '../types';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const AddYouth: React.FC = () => {
   const navigate = useNavigate();
@@ -89,10 +91,15 @@ export const AddYouth: React.FC = () => {
     await storageService.saveSingleYouth(newYouth);
 
     setSuccess(true);
+    toast.success(`تم إضافة ${formData.name} بنجاح!`, {
+      description: `كود الشاب: ${formData.code}`,
+      duration: 3000,
+    });
+    
     setTimeout(() => {
         setSuccess(false);
         navigate('/youth-list');
-    }, 1500);
+    }, 2000);
   };
 
   if (!config) {
@@ -104,7 +111,30 @@ export const AddYouth: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto pb-20">
+      <AnimatePresence>
+        {success && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <div className="bg-white rounded-[3rem] p-10 flex flex-col items-center text-center shadow-2xl max-w-sm w-full border border-slate-100">
+              <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                <CheckCircle2 size={48} />
+              </div>
+              <h3 className="text-3xl font-black text-slate-800 mb-2">تم الحفظ بنجاح!</h3>
+              <p className="text-slate-500 font-bold mb-6">تم تسجيل بيانات الشاب في السحابة بنجاح.</p>
+              <div className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <span className="text-xs font-black text-slate-400 block mb-1">كود الشاب</span>
+                <span className="text-2xl font-black text-blue-600 tracking-widest">{formData.code}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Link to="/" className="flex items-center gap-2 text-blue-600 mb-6 hover:underline font-bold">
         <ArrowLeft size={18} /> <span>العودة للرئيسية</span>
       </Link>
