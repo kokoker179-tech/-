@@ -151,6 +151,9 @@ const SyncIndicator = () => {
   );
 };
 
+import { auth } from './src/firebase';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isSpecialAccess, setIsSpecialAccess] = useState<boolean>(false);
@@ -160,6 +163,13 @@ const App: React.FC = () => {
   const [statusMsg, setStatusMsg] = useState('بدء تهيئة النظام...');
 
   useEffect(() => {
+    // Sign in anonymously if not already authenticated to satisfy Firestore rules
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch(err => console.error('Auth error:', err));
+      }
+    });
+    
     const duration = 6000; // Increased from 3000 to 6000
     const interval = 100;
     const steps = duration / interval;
@@ -197,7 +207,10 @@ const App: React.FC = () => {
       }
     }, interval);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {

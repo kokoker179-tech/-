@@ -3,6 +3,9 @@ import { ShieldCheck, Lock, AlertCircle, Loader2, Users, Hash, Search, ArrowRigh
 import { storageService } from '../services/storageService';
 import React, { useState } from 'react';
 
+import { auth } from '../src/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+
 interface LoginProps {
   onLoginSuccess: () => void;
 }
@@ -17,6 +20,29 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [config, setConfig] = useState<any>(null);
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      if (result.user.email === 'kokoker179@gmail.com') {
+        setSuccess(true);
+        await storageService.setLoggedIn(true, false);
+        setTimeout(() => {
+          onLoginSuccess();
+        }, 800);
+      } else {
+        setError('هذا الحساب ليس له صلاحيات أدمن');
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error('Google Login Error:', err);
+      setError('فشل تسجيل الدخول بجوجل: ' + err.message);
+      setLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     const fetchConfig = async () => {
@@ -187,6 +213,21 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 </div>
                 <button type="submit" disabled={loading} className="w-full bg-white/10 hover:bg-white/20 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50">
                   {loading ? <Loader2 className="animate-spin" /> : <><span>دخول البوابة</span><ArrowRight size={18} /></>}
+                </button>
+                
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-[#020617] px-4 text-slate-500 font-black">أو</span></div>
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={handleGoogleLogin} 
+                  disabled={loading} 
+                  className="w-full bg-white text-slate-900 font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl hover:bg-slate-100 disabled:opacity-50"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                  <span>دخول بحساب جوجل (أدمن)</span>
                 </button>
               </form>
             ) : activeTab === 'special' ? (

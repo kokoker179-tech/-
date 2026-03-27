@@ -1,6 +1,7 @@
 
 import { Youth, AttendanceRecord, SystemConfig, Marathon, MarathonGroup, MarathonActivityPoints, Servant, ServantAttendance, Visitation } from '../types';
-import { db } from '../src/firebase';
+import { db, auth } from '../src/firebase';
+import { signOut } from 'firebase/auth';
 import { collection, getDocs, setDoc, doc, deleteDoc, getDoc, getDocFromServer, getDocsFromServer } from 'firebase/firestore';
 
 const CONFIG_KEY = 'church_db_config_v3';
@@ -74,6 +75,7 @@ export const storageService = {
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(SPECIAL_ACCESS_KEY);
     await deleteDoc(doc(db, 'sessions', deviceId));
+    await signOut(auth).catch(err => console.error('Sign out error:', err));
     window.dispatchEvent(new Event('storage_updated'));
   },
 

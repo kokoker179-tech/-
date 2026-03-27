@@ -5,26 +5,62 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+    
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == "kokoker179@gmail.com"
+        request.auth.token.email == "kokoker179@gmail.com" && 
+        request.auth.token.email_verified == true
       );
     }
 
-    // Collection: youth
+    // Public config
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Sessions (for device tracking)
+    match /sessions/{deviceId} {
+      allow read, write: if true;
+    }
+
+    // Core Collections
     match /youth/{youthId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
     
-    // Collection: attendance
     match /attendance/{attendanceId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
     
-    // Collection: servants
     match /servants/{servantId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /marathons/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /marathonGroups/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /marathonActivityPoints/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /servantAttendance/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /visitations/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
